@@ -124,9 +124,6 @@ void calculate_reflectance(Fibers* f, float *result)
 
 			for (int k = 1; k <= NUM_OF_DETECTOR; k++) {
 				result[k - 1] += f[i].data[k];
-				if (f[i].data[k] != 0) {
-					cout << f[i].absorbed_time[k] << endl;
-				}
 			}
 
 		}
@@ -576,7 +573,6 @@ __device__ void detect(PhotonStruct* p, Fibers* f)
 						temp = 1.0f;
 
 					f->data[i] += p->weight  * acos(temp) * RPI;
-					f->absorbed_time[i] = p->absorbed_time;
 
 				}
 			}

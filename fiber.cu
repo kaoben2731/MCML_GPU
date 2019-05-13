@@ -6,7 +6,6 @@ void fiber_initialization(Fibers* f, float fiber1_position)
 	{
 		for (int j = 0; j <= NUM_OF_DETECTOR; j++) {
 			f[i].data[j] = 0;
-			f[i].absorbed_time[j] = 0;
 		}
 
 		f[i].radius[0] = illumination_r;          // source fiber			
