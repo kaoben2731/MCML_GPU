@@ -22,7 +22,7 @@ __device__ void Spin(PhotonStruct*, float, curandState* state);
 __device__ unsigned int Reflect(PhotonStruct*, int, curandState* state);
 __device__ unsigned int PhotonSurvive(PhotonStruct*, curandState* state);
 __device__ void AtomicAddULL(unsigned long long* address, unsigned int add);
-__device__ void detect(PhotonStruct* p, Fibers* f);
+__device__ bool detect(PhotonStruct* p, Fibers* f);
 __device__ int binarySearch(float *data, float value);
 void fiber_initialization(Fibers* f, float fiber1_position); //Wang modified
 void output_fiber(SimulationStruct* sim, float* reflectance, char* output); //Wang modified
@@ -113,46 +113,13 @@ void calculate_reflectance(Fibers* f, float *result)
 		{
 			for (int k = 1; k <= NUM_OF_DETECTOR; k++) {
 				result[k - 1] += f[i].data[k];
-				/*result[0] += f[i].data[1];
-				result[1] += f[i].data[2];
-				result[2] += f[i].data[3];
-				result[3] += f[i].data[4];*/ //YU-modified
 			}
 		}
 		else
-		{   //Wang-modified
-
+		{
 			for (int k = 1; k <= NUM_OF_DETECTOR; k++) {
 				result[k - 1] += f[i].data[k];
 			}
-
-			/*
-				// Store the absorbance for grid
-				if (p.first_scatter)
-				{
-					unsigned int index;
-					index = min(__float2int_rz(__fdividef(p.z, record_dz)), (int)(record_nz - 1));
-					AtomicAddULL(&DeviceMem.A0_z[index], w_temp);
-					p.first_scatter = false;
-				}
-				else
-				{
-					unsigned int index;
-					index = min(__float2int_rz(__fdividef(p.z, record_dz)), (int)(record_nz - 1)) *record_nr + min(__float2int_rz(__fdividef(sqrtf(p.x*p.x + p.y*p.y), record_dr)), (int)record_nr - 1);
-
-					if (index == index_old)
-					{
-						w += w_temp;
-					}
-					else// if(w!=0)
-					{
-						AtomicAddULL(&DeviceMem.A_rz[index_old], w);
-						index_old = index;
-						w = w_temp;
-					}
-				}
-			*/
-
 		}
 	}
 }
@@ -177,9 +144,6 @@ __global__ void MCd(MemStruct DeviceMem, unsigned long long seed)
 
 	float s;	//step length
 
-	unsigned int index, w, index_old;
-	index_old = 0;
-	w = 0;
 	unsigned int w_temp;
 
 	PhotonStruct p = DeviceMem.p[begin + tx];
@@ -229,9 +193,35 @@ __global__ void MCd(MemStruct DeviceMem, unsigned long long seed)
 			if (Reflect(&p, new_layer, &state) == 0u)//Check for reflection
 			{
 				if (new_layer == 0)
-				{ //Diffuse reflectance
-					detect(&p, &f);
+				{
+					//Diffuse reflectance
+					bool detected = detect(&p, &f);
 					p.weight = 0; // Set the remaining weight to 0, effectively killing the photon
+
+					// Store the absorbance for grid
+					if (detected) {
+						unsigned int index, index_old, w_toAdd;
+						index_old = 0;
+						w_toAdd = 0;
+						for (int abs_index = 0; abs_index < p.absorbed_time; abs_index++) {
+							
+							index = min(__float2int_rz(__fdividef(p.absorbed_path[abs_index][3], record_dz)), (int)(record_nz - 1)) *record_nr + min(__float2int_rz(__fdividef(sqrtf(p.absorbed_path[abs_index][1] *p.absorbed_path[abs_index][1] + p.absorbed_path[abs_index][2] *p.absorbed_path[abs_index][2]), record_dr)), (int)record_nr - 1);
+
+							if (index == index_old)
+							{
+								w_toAdd += p.absorbed_path[abs_index][4];
+							}
+							else
+							{
+								AtomicAddULL(&DeviceMem.A_rz[index_old], w_toAdd);
+								index_old = index;
+								w_toAdd = w_temp;
+							}
+						}
+						if (w_toAdd != 0) {
+							AtomicAddULL(&DeviceMem.A_rz[index_old], w_toAdd);
+						}
+					}
 				}
 				if (new_layer > *n_layers_dc)
 				{	//Transmitted
@@ -247,12 +237,11 @@ __global__ void MCd(MemStruct DeviceMem, unsigned long long seed)
 			//w_temp = layers_dc[p.layer].mua*layers_dc[p.layer].mutr*p.weight;
 			p.weight -= w_temp;
 			
-			f.absorbed_path[f.absorbed_time][0] = p.x;
-			f.absorbed_path[f.absorbed_time][1] = p.y;
-			f.absorbed_path[f.absorbed_time][2] = p.z;
-			f.absorbed_path[f.absorbed_time][3] = w_temp;
-			f.absorbed_time += 1;
-
+			p.absorbed_path[p.absorbed_time][0] = p.x;
+			p.absorbed_path[p.absorbed_time][1] = p.y;
+			p.absorbed_path[p.absorbed_time][2] = p.z;
+			p.absorbed_path[p.absorbed_time][3] = w_temp;
+			p.absorbed_time += 1;
 
 			Spin(&p, layers_dc[p.layer].g, &state);
 		}
@@ -272,8 +261,6 @@ __global__ void MCd(MemStruct DeviceMem, unsigned long long seed)
 		}
 
 	}//end main for loop!
-	if (w != 0)
-		AtomicAddULL(&DeviceMem.A_rz[index_old], w);
 
 	if (k == true && DeviceMem.thread_active[begin + tx] == 1u)    // photons are not killed after numerous steps
 	{
@@ -332,6 +319,14 @@ __device__ void LaunchPhoton(PhotonStruct* p, curandState *state)
 	p->first_scatter = true;
 
 	p->weight = *start_weight_dc; //specular reflection!
+
+	p->absorbed_time = 0;
+	for (int j = 0; j < NUMSTEPS_GPU; j++) {
+		for (int k = 0; k < 4; k++) {
+			p->absorbed_path[j][k] = 0;
+		}
+	}
+
 }
 
 
@@ -479,28 +474,13 @@ __device__ unsigned int PhotonSurvive(PhotonStruct* p, curandState *state)
 	return 0u;
 }
 
-__device__ void detect(PhotonStruct* p, Fibers* f)
+__device__ bool detect(PhotonStruct* p, Fibers* f)
 {
 	float angle = ANGLE*PI / 180; //YU-modified
 	float critical = asin(f->NA[1] / n_detector); //YU-modified
 	float uz_rotated = (p->dx*sin(angle)) + (p->dz*cos(angle)); //YU-modified
 	float uz_angle = acos(fabs(uz_rotated)); //YU-modified
 	float distance;
-
-	// disable NA consideration //YU-modified
-	/*
-	distance = sqrt(p->x * p->x + p->y * p->y);
-
-	for (int i = 1; i <= NUM_OF_DETECTOR; i++)
-	{
-	if ((distance > (f->position[i] - f->radius[i])) && (distance <= (f->position[i] + f->radius[i])))
-	{
-	//record circular instead of a fiber area
-	f->data[i] += p->weight;
-	}
-	}
-
-	*/
 
 	// NA consideration
 	if (uz_angle <= critical)  // successfully detected
@@ -519,42 +499,6 @@ __device__ void detect(PhotonStruct* p, Fibers* f)
 		}
 		else
 		{
-			/*
-			for(int i = 1; i <= 3 ; i++)
-			{
-			if(pow((p->x-f->position[i])*cos(angle),2) + pow(p->y,2) <= f->radius[i]*f->radius[i])
-			f->data[i] += p->weight;
-			}
-
-			for(int i = 4; i <= 6 ; i++)
-			{
-			if(pow((p->y-f->position[i]),2) + pow(p->x*cos(angle),2) <= f->radius[i]*f->radius[i])
-			f->data[i] += p->weight/2;
-			}
-
-			for(int i = 7; i <= 9 ; i++)
-			{
-			if(pow((p->y-f->position[i]),2) + pow(p->x*cos(angle),2) <= f->radius[i]*f->radius[i])
-			f->data[i] += p->weight/2;
-			}
-			*/
-			/*
-			distance = sqrt(p->x * p->x + p->y * p->y);
-			if (distance >= 0.012 && distance <= 0.032)           // SDS = 0.022 cm
-			f->data[1] += p->weight / 8.8;
-			if (distance >= 0.035 && distance <= 0.055)             // SDS = 0.045 cm
-			f->data[2] += p->weight / 18.0;
-			if (distance >= 0.063 && distance <= 0.083)             // SDS = 0.073 cm
-			f->data[3] += p->weight / 29.2;
-
-			if (distance >= 0.0115 && distance <= 0.0315)             // SDS = 0.0215 cm
-			f->data[4] += p->weight / 8.6;
-			if (distance >= 0.031 && distance <= 0.051)             // SDS = 0.041 cm
-			f->data[5] += p->weight / 16.4;
-			if (distance >= 0.051 && distance <= 0.071)             // SDS = 0.061 cm
-			f->data[6] += p->weight / 24.4;
-			*/
-
 			distance = sqrt(p->x * p->x + p->y * p->y);
 			//all circular
 			/*
@@ -579,12 +523,12 @@ __device__ void detect(PhotonStruct* p, Fibers* f)
 						temp = 1.0f;
 
 					f->data[i] += p->weight  * acos(temp) * RPI;
-					f->detected = 1;
+					return true;
 				}
 			}
 		}
 	}
-	return;
+	return false;
 }
 
 int InitDCMem(SimulationStruct* sim)

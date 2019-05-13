@@ -13,15 +13,6 @@ void fiber_initialization(Fibers* f, float fiber1_position)
 		f[i].angle[0] = ANGLE*PI / 180;
 		f[i].position[0] = 0.0;
 
-		f[i].detected = 0;
-		f[i].absorbed_time = 0;
-		for (int j = 0; j < NUMSTEPS_GPU; j++) {
-			for (int k = 0; k < 4; k++) {
-				f[i].absorbed_path[j][k] = 0;
-			}
-		}
-		
-		
 
 		if (NORMAL)
 		{
