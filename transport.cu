@@ -60,9 +60,14 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char
 	dim3 dimGrid(NUM_BLOCKS);				printf("NUM_BLOCKS\t%d\n", NUM_BLOCKS);
 
 	LaunchPhoton_Global << <dimGrid, dimBlock >> >(DeviceMem, seed);
+	cout << "finish launch photon\n";
+	system("pause");
 	cudaThreadSynchronize(); //CUDA_SAFE_CALL( cudaThreadSynchronize() ); // Wait for all threads to finish
 	cudastat = cudaGetLastError(); // Check if there was an error
 	if (cudastat)printf("Error code=%i, %s.\n", cudastat, cudaGetErrorString(cudastat));
+
+	cout << "before while loop\n";
+	system("pause");
 
 	i = 0;
 
@@ -237,11 +242,13 @@ __global__ void MCd(MemStruct DeviceMem, unsigned long long seed)
 			//w_temp = layers_dc[p.layer].mua*layers_dc[p.layer].mutr*p.weight;
 			p.weight -= w_temp;
 			
-			p.absorbed_path[p.absorbed_time][0] = p.x;
-			p.absorbed_path[p.absorbed_time][1] = p.y;
-			p.absorbed_path[p.absorbed_time][2] = p.z;
-			p.absorbed_path[p.absorbed_time][3] = w_temp;
-			p.absorbed_time += 1;
+			if (p.absorbed_time < NUMSTEPS_GPU) {
+				p.absorbed_path[p.absorbed_time][0] = p.x;
+				p.absorbed_path[p.absorbed_time][1] = p.y;
+				p.absorbed_path[p.absorbed_time][2] = p.z;
+				p.absorbed_path[p.absorbed_time][3] = w_temp;
+				p.absorbed_time += 1;
+			}
 
 			Spin(&p, layers_dc[p.layer].g, &state);
 		}
