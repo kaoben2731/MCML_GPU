@@ -126,6 +126,33 @@ void calculate_reflectance(Fibers* f, float *result)
 				result[k - 1] += f[i].data[k];
 			}
 
+			/*
+				// Store the absorbance for grid
+				if (p.first_scatter)
+				{
+					unsigned int index;
+					index = min(__float2int_rz(__fdividef(p.z, record_dz)), (int)(record_nz - 1));
+					AtomicAddULL(&DeviceMem.A0_z[index], w_temp);
+					p.first_scatter = false;
+				}
+				else
+				{
+					unsigned int index;
+					index = min(__float2int_rz(__fdividef(p.z, record_dz)), (int)(record_nz - 1)) *record_nr + min(__float2int_rz(__fdividef(sqrtf(p.x*p.x + p.y*p.y), record_dr)), (int)record_nr - 1);
+
+					if (index == index_old)
+					{
+						w += w_temp;
+					}
+					else// if(w!=0)
+					{
+						AtomicAddULL(&DeviceMem.A_rz[index_old], w);
+						index_old = index;
+						w = w_temp;
+					}
+				}
+			*/
+
 		}
 	}
 }
@@ -219,32 +246,13 @@ __global__ void MCd(MemStruct DeviceMem, unsigned long long seed)
 			w_temp = __float2uint_rn(layers_dc[p.layer].mua*layers_dc[p.layer].mutr*__uint2float_rn(p.weight));
 			//w_temp = layers_dc[p.layer].mua*layers_dc[p.layer].mutr*p.weight;
 			p.weight -= w_temp;
-			p.absorbed_time += 1;
+			
+			f.absorbed_path[f.absorbed_time][0] = p.x;
+			f.absorbed_path[f.absorbed_time][1] = p.y;
+			f.absorbed_path[f.absorbed_time][2] = p.z;
+			f.absorbed_path[f.absorbed_time][3] = w_temp;
+			f.absorbed_time += 1;
 
-			// Store the absorbance for grid
-			if (p.first_scatter)
-			{
-				unsigned int index;
-				index = min(__float2int_rz(__fdividef(p.z, record_dz)), (int)(record_nz - 1));
-				AtomicAddULL(&DeviceMem.A0_z[index], w_temp);
-				p.first_scatter = false;
-			}
-			else
-			{
-				unsigned int index;
-				index = min(__float2int_rz(__fdividef(p.z, record_dz)), (int)(record_nz - 1)) *record_nr + min(__float2int_rz(__fdividef(sqrtf(p.x*p.x + p.y*p.y), record_dr)), (int)record_nr - 1);
-
-				if (index == index_old)
-				{
-					w += w_temp;
-				}
-				else// if(w!=0)
-				{
-					AtomicAddULL(&DeviceMem.A_rz[index_old], w);
-					index_old = index;
-					w = w_temp;
-				}
-			}
 
 			Spin(&p, layers_dc[p.layer].g, &state);
 		}
@@ -324,8 +332,6 @@ __device__ void LaunchPhoton(PhotonStruct* p, curandState *state)
 	p->first_scatter = true;
 
 	p->weight = *start_weight_dc; //specular reflection!
-
-	p->absorbed_time = 0;
 }
 
 
@@ -573,7 +579,7 @@ __device__ void detect(PhotonStruct* p, Fibers* f)
 						temp = 1.0f;
 
 					f->data[i] += p->weight  * acos(temp) * RPI;
-
+					f->detected = 1;
 				}
 			}
 		}

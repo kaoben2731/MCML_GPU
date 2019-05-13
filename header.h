@@ -84,8 +84,6 @@ typedef struct __align__(16)
 	float weight;			// Photon weight
 	int layer;				// Current layer
 	bool first_scatter; // flag of first scatter
-	int absorbed_time; // for testing how many times photon has been abseorbed
-	float absorbed_path[NUMSTEPS_GPU][4]; // store the absorbed position and weight 
 }PhotonStruct;
 
 typedef struct
@@ -103,6 +101,9 @@ typedef struct
 	float position[NUM_OF_DETECTOR + 1];
 	float angle[NUM_OF_DETECTOR + 1];
 	float data[NUM_OF_DETECTOR + 1];
+	bool detected;	   // flag for photon had been detected
+	int absorbed_time; // for testing how many times photon has been abseorbed
+	float absorbed_path[NUMSTEPS_GPU][4]; // store the absorbed position and weight 
 }Fibers;
 
 typedef struct
