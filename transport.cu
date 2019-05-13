@@ -124,6 +124,9 @@ void calculate_reflectance(Fibers* f, float *result)
 
 			for (int k = 1; k <= NUM_OF_DETECTOR; k++) {
 				result[k - 1] += f[i].data[k];
+				if (f[i].data[k] != 0) {
+					cout << f[i].absorbed_time[k] << endl;
+				}
 			}
 
 		}
@@ -219,6 +222,7 @@ __global__ void MCd(MemStruct DeviceMem, unsigned long long seed)
 			w_temp = __float2uint_rn(layers_dc[p.layer].mua*layers_dc[p.layer].mutr*__uint2float_rn(p.weight));
 			//w_temp = layers_dc[p.layer].mua*layers_dc[p.layer].mutr*p.weight;
 			p.weight -= w_temp;
+			p.absorbed_time += 1;
 
 			// Store the absorbance for grid
 			if (p.first_scatter)
@@ -323,6 +327,8 @@ __device__ void LaunchPhoton(PhotonStruct* p, curandState *state)
 	p->first_scatter = true;
 
 	p->weight = *start_weight_dc; //specular reflection!
+
+	p->absorbed_time = 0;
 }
 
 
@@ -570,6 +576,7 @@ __device__ void detect(PhotonStruct* p, Fibers* f)
 						temp = 1.0f;
 
 					f->data[i] += p->weight  * acos(temp) * RPI;
+					f->absorbed_time[i] = p->absorbed_time;
 
 				}
 			}

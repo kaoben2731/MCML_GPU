@@ -84,6 +84,7 @@ typedef struct __align__(16)
 	float weight;			// Photon weight
 	int layer;				// Current layer
 	bool first_scatter; // flag of first scatter
+	int absorbed_time; // for testing how many times photon has been abseorbed
 }PhotonStruct;
 
 typedef struct
@@ -101,6 +102,7 @@ typedef struct
 	float position[18];	//float position[13];	//YU-modified
 	float angle[18];	//float angle[13];		//YU-modified
 	float data[18];		//float data[13];		//YU-modified
+	int absorbed_time[18]; // for storing how many times photon has been abseorbed
 }Fibers;
 
 typedef struct
