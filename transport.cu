@@ -60,14 +60,14 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char
 	dim3 dimGrid(NUM_BLOCKS);				printf("NUM_BLOCKS\t%d\n", NUM_BLOCKS);
 
 	LaunchPhoton_Global << <dimGrid, dimBlock >> >(DeviceMem, seed);
-	cout << "finish launch photon\n";
-	system("pause");
+	//cout << "finish launch photon\n";
+	//system("pause");
 	cudaThreadSynchronize(); //CUDA_SAFE_CALL( cudaThreadSynchronize() ); // Wait for all threads to finish
 	cudastat = cudaGetLastError(); // Check if there was an error
 	if (cudastat)printf("Error code=%i, %s.\n", cudastat, cudaGetErrorString(cudastat));
 
-	cout << "before while loop\n";
-	system("pause");
+	//cout << "before while loop\n";
+	//system("pause");
 
 	i = 0;
 
@@ -90,12 +90,12 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char
 		threads_active_total = 0;
 		for (ii = 0; ii<NUM_THREADS; ii++) threads_active_total += HostMem.thread_active[ii];
 
-		//CUDA_SAFE_CALL(cudaMemcpy(HostMem.num_terminated_photons,DeviceMem.num_terminated_photons,sizeof(unsigned int),cudaMemcpyDeviceToHost) );
-
-		//printf("Run %u, Number of photons terminated %u, Threads active %u\n",i,*HostMem.num_terminated_photons,threads_active_total);
+		cudaMemcpy(HostMem.num_terminated_photons,DeviceMem.num_terminated_photons,sizeof(unsigned long long),cudaMemcpyDeviceToHost);
+		printf("Run %u, Number of photons terminated %u, Threads active %u\n",i,*HostMem.num_terminated_photons,threads_active_total);
 
 		cudaMemcpy(HostMem.f, DeviceMem.f, NUM_THREADS * sizeof(Fibers), cudaMemcpyDeviceToHost); //CUDA_SAFE_CALL(cudaMemcpy(HostMem.f,DeviceMem.f,NUM_THREADS*sizeof(Fibers),cudaMemcpyDeviceToHost));
 		calculate_reflectance(HostMem.f, reflectance);
+		//cout << "while loop " << i << " done\n";
 	}
 	//cout << "#" << index << " Simulation done!\n";
 
@@ -220,7 +220,7 @@ __global__ void MCd(MemStruct DeviceMem, unsigned long long seed)
 							{
 								AtomicAddULL(&DeviceMem.A_rz[index_old], w_toAdd);
 								index_old = index;
-								w_toAdd = w_temp;
+								w_toAdd = p.absorbed_path[abs_index][4];
 							}
 						}
 						if (w_toAdd != 0) {
