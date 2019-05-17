@@ -478,21 +478,6 @@ __device__ void detect(PhotonStruct* p, Fibers* f)
 	float uz_angle = acos(fabs(uz_rotated)); //YU-modified
 	float distance;
 
-	// disable NA consideration //YU-modified
-	/*
-	distance = sqrt(p->x * p->x + p->y * p->y);
-
-	for (int i = 1; i <= NUM_OF_DETECTOR; i++)
-	{
-	if ((distance > (f->position[i] - f->radius[i])) && (distance <= (f->position[i] + f->radius[i])))
-	{
-	//record circular instead of a fiber area
-	f->data[i] += p->weight;
-	}
-	}
-
-	*/
-
 	// NA consideration
 	if (uz_angle <= critical)  // successfully detected
 	{
@@ -510,42 +495,6 @@ __device__ void detect(PhotonStruct* p, Fibers* f)
 		}
 		else
 		{
-			/*
-			for(int i = 1; i <= 3 ; i++)
-			{
-			if(pow((p->x-f->position[i])*cos(angle),2) + pow(p->y,2) <= f->radius[i]*f->radius[i])
-			f->data[i] += p->weight;
-			}
-
-			for(int i = 4; i <= 6 ; i++)
-			{
-			if(pow((p->y-f->position[i]),2) + pow(p->x*cos(angle),2) <= f->radius[i]*f->radius[i])
-			f->data[i] += p->weight/2;
-			}
-
-			for(int i = 7; i <= 9 ; i++)
-			{
-			if(pow((p->y-f->position[i]),2) + pow(p->x*cos(angle),2) <= f->radius[i]*f->radius[i])
-			f->data[i] += p->weight/2;
-			}
-			*/
-			/*
-			distance = sqrt(p->x * p->x + p->y * p->y);
-			if (distance >= 0.012 && distance <= 0.032)           // SDS = 0.022 cm
-			f->data[1] += p->weight / 8.8;
-			if (distance >= 0.035 && distance <= 0.055)             // SDS = 0.045 cm
-			f->data[2] += p->weight / 18.0;
-			if (distance >= 0.063 && distance <= 0.083)             // SDS = 0.073 cm
-			f->data[3] += p->weight / 29.2;
-
-			if (distance >= 0.0115 && distance <= 0.0315)             // SDS = 0.0215 cm
-			f->data[4] += p->weight / 8.6;
-			if (distance >= 0.031 && distance <= 0.051)             // SDS = 0.041 cm
-			f->data[5] += p->weight / 16.4;
-			if (distance >= 0.051 && distance <= 0.071)             // SDS = 0.061 cm
-			f->data[6] += p->weight / 24.4;
-			*/
-
 			distance = sqrt(p->x * p->x + p->y * p->y);
 			//all circular
 			/*
