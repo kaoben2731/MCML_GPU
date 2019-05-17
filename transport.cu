@@ -26,7 +26,7 @@ __device__ void detect(PhotonStruct* p, Fibers* f);
 __device__ int binarySearch(float *data, float value);
 void fiber_initialization(Fibers* f, float fiber1_position); //Wang modified
 void output_fiber(SimulationStruct* sim, float* reflectance, char* output); //Wang modified
-void calculate_reflectance(Fibers* f, float *result);
+void calculate_reflectance(Fibers* f, float *result, float (*pathlength_weight_arr)[NUM_LAYER + 1][detected_num_total], int *total_SDS_detect_num, int *temp_SDS_detect_num);
 void input_g(int index, G_Array *g);
 int InitG(G_Array* HostG, G_Array* DeviceG, int index);
 void FreeG(G_Array* HostG, G_Array* DeviceG);
@@ -41,7 +41,10 @@ __device__ float rn_gen(curandState *s)
 void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char* fiber1_position) //Wang modified
 {
 	unsigned long long seed = time(NULL);
-	float reflectance[NUM_OF_DETECTOR] = { 0 }; //float reflectance[8] = {0}; //YU-Modified
+	float reflectance[NUM_OF_DETECTOR] = { 0 }; //record reflectance of fibers
+	float pathlength_weight_arr[NUM_OF_DETECTOR][NUM_LAYER+1][detected_num_total] = { 0 }; // record the pathlength and weight for each photon, in each layer, and for each detector
+	int total_SDS_detect_num[NUM_OF_DETECTOR] = { 0 }; // record number fo detected photon by each detector
+	int temp_SDS_detect_num[NUM_OF_DETECTOR] = { 0 }; // record temp number fo detected photon by each detector, for prevent the collected photon number exceed detected_num_total
 
 	MemStruct DeviceMem;
 	MemStruct HostMem;
@@ -82,12 +85,16 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char
 		threads_active_total = 0;
 		for (ii = 0; ii<NUM_THREADS; ii++) threads_active_total += HostMem.thread_active[ii];
 
-		//CUDA_SAFE_CALL(cudaMemcpy(HostMem.num_terminated_photons,DeviceMem.num_terminated_photons,sizeof(unsigned int),cudaMemcpyDeviceToHost) );
-
-		//printf("Run %u, Number of photons terminated %u, Threads active %u\n",i,*HostMem.num_terminated_photons,threads_active_total);
-
 		cudaMemcpy(HostMem.f, DeviceMem.f, NUM_THREADS * sizeof(Fibers), cudaMemcpyDeviceToHost); //CUDA_SAFE_CALL(cudaMemcpy(HostMem.f,DeviceMem.f,NUM_THREADS*sizeof(Fibers),cudaMemcpyDeviceToHost));
-		calculate_reflectance(HostMem.f, reflectance);
+		calculate_reflectance(HostMem.f, reflectance, pathlength_weight_arr,total_SDS_detect_num, temp_SDS_detect_num);
+
+		cudaMemcpy(HostMem.num_terminated_photons, DeviceMem.num_terminated_photons, sizeof(unsigned int), cudaMemcpyDeviceToHost);
+
+		printf("Run %u, Number of photons terminated %u, Threads active %u, photon deteced number for SDSs:", i, *HostMem.num_terminated_photons, threads_active_total);
+		for (int d = 0; d < NUM_OF_DETECTOR; d++) {
+			printf("\t%d,", temp_SDS_detect_num[d]);
+		}
+		printf("\n");
 	}
 	//cout << "#" << index << " Simulation done!\n";
 
@@ -96,7 +103,7 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char
 	FreeMemStructs(&HostMem, &DeviceMem);
 }
 
-void calculate_reflectance(Fibers* f, float *result)
+void calculate_reflectance(Fibers* f, float *result, float (*pathlength_weight_arr)[NUM_LAYER + 1][detected_num_total], int *total_SDS_detect_num, int *temp_SDS_detect_num)
 {
 	for (int i = 0; i < NUM_THREADS; i++)
 	{
@@ -114,7 +121,16 @@ void calculate_reflectance(Fibers* f, float *result)
 		{   //Wang-modified
 
 			for (int k = 1; k <= NUM_OF_DETECTOR; k++) {
-				result[k - 1] += f[i].data[k];
+				if (f[i].photon_detected) {
+					// record the weight, count detected photon number, and record pathlength
+					result[k - 1] += f[i].data[k];
+					total_SDS_detect_num[k - 1] += 1;
+					temp_SDS_detect_num[k - 1] += 1;
+					pathlength_weight_arr[k - 1][0][temp_SDS_detect_num[k - 1]] = f[i].data[k];
+					for (int l = 0; l < NUM_LAYER; l++) {
+						pathlength_weight_arr[k - 1][l + 1][temp_SDS_detect_num[k - 1]] = f[i].layer_pathlength[l];
+					}
+				}
 			}
 
 		}
@@ -164,7 +180,7 @@ __global__ void MCd(MemStruct DeviceMem, unsigned long long seed)
 		else
 			s = 100.0f;//temporary, say the step in glass is 100 cm.
 
-					   //Check for layer transitions and in case, calculate s
+		//Check for layer transitions and in case, calculate s
 		new_layer = p.layer;
 		if (p.z + s*p.dz<layers_dc[p.layer].z_min) {
 			new_layer--;
@@ -178,6 +194,8 @@ __global__ void MCd(MemStruct DeviceMem, unsigned long long seed)
 		p.x += p.dx*s;
 		p.y += p.dy*s;
 		p.z += p.dz*s;
+
+		f.layer_pathlength[p.layer-1] += s;
 
 		if (p.z>layers_dc[p.layer].z_max)p.z = layers_dc[p.layer].z_max;//needed?
 		if (p.z<layers_dc[p.layer].z_min)p.z = layers_dc[p.layer].z_min;//needed?
@@ -480,6 +498,7 @@ __device__ void detect(PhotonStruct* p, Fibers* f)
 						temp = 1.0f;
 
 					f->data[i] += p->weight  * acos(temp) * RPI;
+					f->photon_detected[i] = true;
 
 				}
 			}
