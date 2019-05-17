@@ -26,6 +26,14 @@ void fiber_initialization(Fibers* f, float fiber1_position)
 		}
 		else
 		{
+			/*
+			f[i].radius[1] = 0.0002;      //fiber 1
+			f[i].NA[1] = NAOfDetector;
+			f[i].position[1] = 0.8;
+			f[i].angle[1] = ANGLE*PI / 180;
+			*/
+
+			
 			f[i].radius[1] = collect_r;      //fiber 1
 			f[i].NA[1] = NAOfDetector;
 			f[i].position[1] = 1.45;

@@ -209,18 +209,16 @@ __global__ void MCd(MemStruct DeviceMem, unsigned long long seed)
 						index_old = 0;
 						w_toAdd = 0;
 						for (int abs_index = 0; abs_index < p.absorbed_time; abs_index++) {
-							
-							index = min(__float2int_rz(__fdividef(p.absorbed_path[abs_index][3], record_dz)), (int)(record_nz - 1)) *record_nr + min(__float2int_rz(__fdividef(sqrtf(p.absorbed_path[abs_index][1] *p.absorbed_path[abs_index][1] + p.absorbed_path[abs_index][2] *p.absorbed_path[abs_index][2]), record_dr)), (int)record_nr - 1);
-
+							index = p.absorbed_pos_index[abs_index];
 							if (index == index_old)
 							{
-								w_toAdd += p.absorbed_path[abs_index][4];
+								w_toAdd += p.absorbed_weight[abs_index];
 							}
 							else
 							{
 								AtomicAddULL(&DeviceMem.A_rz[index_old], w_toAdd);
 								index_old = index;
-								w_toAdd = p.absorbed_path[abs_index][4];
+								w_toAdd = p.absorbed_weight[abs_index];
 							}
 						}
 						if (w_toAdd != 0) {
@@ -243,10 +241,9 @@ __global__ void MCd(MemStruct DeviceMem, unsigned long long seed)
 			p.weight -= w_temp;
 			
 			if (p.absorbed_time < NUMSTEPS_GPU) {
-				p.absorbed_path[p.absorbed_time][0] = p.x;
-				p.absorbed_path[p.absorbed_time][1] = p.y;
-				p.absorbed_path[p.absorbed_time][2] = p.z;
-				p.absorbed_path[p.absorbed_time][3] = w_temp;
+				unsigned int index = min(__float2int_rz(__fdividef(p.z, record_dz)), (int)(record_nz - 1)) *record_nr + min(__float2int_rz(__fdividef(sqrtf(p.x*p.x + p.y*p.y), record_dr)), (int)record_nr - 1);
+				p.absorbed_pos_index[p.absorbed_time] = index;
+				p.absorbed_weight[p.absorbed_time] = w_temp;
 				p.absorbed_time += 1;
 			}
 
@@ -328,12 +325,6 @@ __device__ void LaunchPhoton(PhotonStruct* p, curandState *state)
 	p->weight = *start_weight_dc; //specular reflection!
 
 	p->absorbed_time = 0;
-	for (int j = 0; j < NUMSTEPS_GPU; j++) {
-		for (int k = 0; k < 4; k++) {
-			p->absorbed_path[j][k] = 0;
-		}
-	}
-
 }
 
 
