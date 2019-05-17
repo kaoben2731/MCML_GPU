@@ -55,11 +55,7 @@ using namespace std;
 #define WEIGHTI 429497u //0xFFFFFFFFu*WEIGHT
 #define CHANCE 0.1f
 
-// define the absorbance array
-#define record_dr 0.01f
-#define record_dz 0.01f
-#define record_nr 1000
-#define record_nz 500
+#define detected_num_total 40000 //number of photon should be detected
 
 
 // TYPEDEFS
@@ -96,11 +92,13 @@ typedef struct
 
 typedef struct
 {
-	float radius[18];	//float radius[13];		//YU-modified
-	float NA[18];		//float NA[13];			//YU-modified
-	float position[18];	//float position[13];	//YU-modified
-	float angle[18];	//float angle[13];		//YU-modified
-	float data[18];		//float data[13];		//YU-modified
+	float radius[NUM_OF_DETECTOR+1];
+	float NA[NUM_OF_DETECTOR+1];
+	float position[NUM_OF_DETECTOR+1];
+	float angle[NUM_OF_DETECTOR+1];
+	float data[NUM_OF_DETECTOR+1]; // the photon weight detected by this probe
+	bool photon_detected[NUM_OF_DETECTOR + 1]; // whether this fiber had detected photon
+	float layer_pathlength[NUM_LAYER]; // record the pathlength in each layer for detected photon
 }Fibers;
 
 typedef struct
@@ -110,9 +108,6 @@ typedef struct
 	unsigned int* thread_active;		// Pointer to the array containing the thread active status
 	unsigned long long* num_terminated_photons;	//Pointer to a scalar keeping track of the number of terminated photons
 	curandState*  state;
-
-	unsigned long long* A_rz;			// array to store absorbance, a nz by nr array
-	unsigned long long* A0_z;			// array to store the first scatter absorbance
 }MemStruct;
 
 typedef struct

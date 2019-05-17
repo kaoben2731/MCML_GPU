@@ -31,9 +31,6 @@ void input_g(int index, G_Array *g);
 int InitG(G_Array* HostG, G_Array* DeviceG, int index);
 void FreeG(G_Array* HostG, G_Array* DeviceG);
 
-void output_A_rz(SimulationStruct* sim, unsigned long long *data, char* output);
-void output_A0_z(SimulationStruct* sim, unsigned long long *data, char* output);
-
 
 __device__ float rn_gen(curandState *s)
 {
@@ -94,14 +91,8 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char
 	}
 	//cout << "#" << index << " Simulation done!\n";
 
-	// copy the A_rz and A0_z back to host
-	cudaMemcpy(HostMem.A_rz, DeviceMem.A_rz, record_nr * record_nz * sizeof(unsigned long long), cudaMemcpyDeviceToHost);
-	cudaMemcpy(HostMem.A0_z, DeviceMem.A0_z, record_nz * sizeof(unsigned long long), cudaMemcpyDeviceToHost);
-
 	output_fiber(simulation, reflectance, output); //Wang modified
 
-	output_A_rz(simulation, HostMem.A_rz, "A_rz.txt"); // output the absorbance
-	output_A0_z(simulation, HostMem.A0_z, "A0_z.txt");
 	FreeMemStructs(&HostMem, &DeviceMem);
 }
 
@@ -150,9 +141,6 @@ __global__ void MCd(MemStruct DeviceMem, unsigned long long seed)
 
 	float s;	//step length
 
-	unsigned int index, w, index_old;
-	index_old = 0;
-	w = 0;
 	unsigned int w_temp;
 
 	PhotonStruct p = DeviceMem.p[begin + tx];
@@ -220,31 +208,6 @@ __global__ void MCd(MemStruct DeviceMem, unsigned long long seed)
 			//w_temp = layers_dc[p.layer].mua*layers_dc[p.layer].mutr*p.weight;
 			p.weight -= w_temp;
 
-			// Store the absorbance for grid
-			if (p.first_scatter)
-			{
-				unsigned int index;
-				index = min(__float2int_rz(__fdividef(p.z, record_dz)), (int)(record_nz - 1));
-				AtomicAddULL(&DeviceMem.A0_z[index], w_temp);
-				p.first_scatter = false;
-			}
-			else
-			{
-				unsigned int index;
-				index = min(__float2int_rz(__fdividef(p.z, record_dz)), (int)(record_nz - 1)) *record_nr + min(__float2int_rz(__fdividef(sqrtf(p.x*p.x + p.y*p.y), record_dr)), (int)record_nr - 1);
-
-				if (index == index_old)
-				{
-					w += w_temp;
-				}
-				else// if(w!=0)
-				{
-					AtomicAddULL(&DeviceMem.A_rz[index_old], w);
-					index_old = index;
-					w = w_temp;
-				}
-			}
-
 			Spin(&p, layers_dc[p.layer].g, &state);
 		}
 
@@ -263,8 +226,6 @@ __global__ void MCd(MemStruct DeviceMem, unsigned long long seed)
 		}
 
 	}//end main for loop!
-	if (w != 0)
-		AtomicAddULL(&DeviceMem.A_rz[index_old], w);
 
 	if (k == true && DeviceMem.thread_active[begin + tx] == 1u)    // photons are not killed after numerous steps
 	{
@@ -574,21 +535,6 @@ int InitMemStructs(MemStruct* HostMem, MemStruct* DeviceMem, SimulationStruct* s
 	//Allocate states on the device and host
 	cudaMalloc((void**)&DeviceMem->state, NUM_THREADS * sizeof(curandState));
 
-	int rz_size;
-	rz_size = record_nr*record_nz;
-
-	// Allocate A_rz on host and device
-	HostMem->A_rz = (unsigned long long*) malloc(rz_size * sizeof(unsigned long long));
-	if (HostMem->A_rz == NULL) { printf("Error allocating HostMem->A_rz"); exit(1); }
-	cudaMalloc((void**)&DeviceMem->A_rz, rz_size * sizeof(unsigned long long));
-	cudaMemset(DeviceMem->A_rz, 0, rz_size * sizeof(unsigned long long));
-
-	// Allocate A0_z on host and device
-	HostMem->A0_z = (unsigned long long*) malloc(record_nz * sizeof(unsigned long long));
-	if (HostMem->A0_z == NULL) { printf("Error allocating HostMem->A_rz"); exit(1); }
-	cudaMalloc((void**)&DeviceMem->A0_z, record_nz * sizeof(unsigned long long));
-	cudaMemset(DeviceMem->A0_z, 0, record_nz * sizeof(unsigned long long));
-
 	return 1;
 }
 
@@ -597,13 +543,9 @@ void FreeMemStructs(MemStruct* HostMem, MemStruct* DeviceMem)
 	free(HostMem->thread_active);
 	free(HostMem->num_terminated_photons);
 	free(HostMem->f);
-	free(HostMem->A_rz);
-	free(HostMem->A0_z);
 
 	cudaFree(DeviceMem->thread_active);
 	cudaFree(DeviceMem->num_terminated_photons);
 	cudaFree(DeviceMem->f);
 	cudaFree(DeviceMem->state);
-	cudaFree(DeviceMem->A_rz);
-	cudaFree(DeviceMem->A0_z);
 }

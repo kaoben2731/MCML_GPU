@@ -4,9 +4,14 @@ void fiber_initialization(Fibers* f, float fiber1_position)
 {
 	for (int i = 0; i < NUM_THREADS; i++)
 	{
-		for (int j = 0; j <= NUM_OF_DETECTOR; j++)
+		for (int j = 0; j <= NUM_OF_DETECTOR; j++) {
 			f[i].data[j] = 0;
-
+			f[i].photon_detected[j] = false;
+		}
+		for (int j = 0; j < NUM_LAYER; j++) {
+			f[i].layer_pathlength[j] = 0;
+		}
+		
 		f[i].radius[0] = illumination_r;          // source fiber			
 		f[i].NA[0] = NAOfSource;
 		f[i].angle[0] = ANGLE*PI / 180;

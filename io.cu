@@ -154,7 +154,7 @@ int read_mua_mus(SimulationStruct** simulations, char* input) //Wang modified
 	}
 	return n_simulations;
 }
-
+/*
 void output_A_rz(SimulationStruct* sim, unsigned long long *data, char* output)
 {
 	ofstream myfile;
@@ -195,3 +195,4 @@ void output_A0_z(SimulationStruct* sim, unsigned long long *data, char* output)
 
 	myfile.close();
 }
+*/
