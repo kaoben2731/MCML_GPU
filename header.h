@@ -55,7 +55,7 @@ using namespace std;
 #define WEIGHTI 429497u //0xFFFFFFFFu*WEIGHT
 #define CHANCE 0.1f
 
-#define detected_num_total 40000 //number of photon should be detected
+#define detected_num_total 20000 //number of photon should be detected
 
 
 // TYPEDEFS
