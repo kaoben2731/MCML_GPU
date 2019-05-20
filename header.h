@@ -48,14 +48,14 @@ using namespace std;
 #define n_source           1.457//1.457//1.457//1.61 //YU-modified
 #define illumination_r     0.075//0.075		//radius //Wang-modified //skin:0.025  IJV:0.075
 #define collect_r          0.02//0.02//0.025//0.02			//radius //Wang-modified //skin:0.025  IJV:0.02
-#define NUMBER_PHOTONS     500000000//1000000000//50000000//400000000 -skin
+#define NUMBER_PHOTONS     100000000//1000000000//50000000//400000000 -skin
 #define NUMBER_SIMULATION  1//42//31//54//36  //IJV:36 skin:4
 
 //#define WEIGHT 0.0001f
 #define WEIGHTI 429497u //0xFFFFFFFFu*WEIGHT
 #define CHANCE 0.1f
 
-#define detected_num_total 20000 //number of photon should be detected
+#define detected_num_total 5000 //number of photon should be detected
 
 
 // TYPEDEFS

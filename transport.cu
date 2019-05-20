@@ -164,9 +164,13 @@ void calculate_reflectance(Fibers* f, float *result, float ***pathlength_weight_
 					temp_SDS_detect_num[k - 1]++;
 					total_SDS_detect_num[k - 1]++;
 
+					output_SDS_pathlength(pathlength_weight_arr, temp_SDS_detect_num, k);
+
+					/*
 					if (temp_SDS_detect_num[k - 1] >= detected_num_total) {
 						output_SDS_pathlength(pathlength_weight_arr, temp_SDS_detect_num, k);
 					}
+					*/
 				}
 			}
 		}

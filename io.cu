@@ -161,7 +161,7 @@ void generate_filename(char *filename, int SDS_number)
 	// make the output file name
 	char output[100] = "pathlength_SDS_";
 	char postfix[10] = ".txt";
-	string SDS_num = to_string(SDS_number + 1);
+	string SDS_num = to_string(SDS_number);
 	int i = 0;
 	for (; output[i] != '\0'; i++) {
 		filename[i] = output[i];
@@ -180,6 +180,7 @@ void generate_filename(char *filename, int SDS_number)
 // SDS_to_output: exact number of SDS to output, 1 for SDS1 , 0 for output all SDS
 void output_SDS_pathlength(float ***pathlength_weight_arr, int *temp_SDS_detect_num, int SDS_to_output)
 {
+	cout << "SDS_to_output= " << SDS_to_output << endl;
 	int start_SDS_index, end_SDS_index;
 	if (SDS_to_output==0){
 		start_SDS_index = 0;
@@ -202,7 +203,7 @@ void output_SDS_pathlength(float ***pathlength_weight_arr, int *temp_SDS_detect_
 			for (int j = 0; j <= NUM_LAYER; j++) {
 				myfile << pathlength_weight_arr[s][j][i] << '\t';
 			}
-			myfile << endl;
+			myfile << endl << "=====" << endl;
 		}
 		myfile.close();
 		temp_SDS_detect_num[s] = 0;
@@ -217,7 +218,7 @@ void output_sim_summary(SimulationStruct* sim, int *total_SDS_detect_num)
 	double scale1 = (double)0xFFFFFFFF * (double)sim->number_of_photons;
 	
 	myfile << "Photon weight should be divided by " << scale1 << endl << "Detected photon number:" << endl;
-	for (int i = 0; i < NUM_LAYER; i++) {
+	for (int i = 0; i < NUM_OF_DETECTOR; i++) {
 		myfile << "SDS " << i << ":\t" << total_SDS_detect_num[i] << endl;
 	}
 	myfile.close();
