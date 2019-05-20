@@ -25,8 +25,9 @@ __device__ void AtomicAddULL(unsigned long long* address, unsigned int add);
 __device__ void detect(PhotonStruct* p, Fibers* f);
 __device__ int binarySearch(float *data, float value);
 void fiber_initialization(Fibers* f, float fiber1_position); //Wang modified
-void output_fiber(SimulationStruct* sim, float* reflectance, char* output, float ***pathlength_weight_arr); //Wang modified
+void output_fiber(SimulationStruct* sim, float* reflectance, char* output); //Wang modified
 void output_SDS_pathlength(float ***pathlength_weight_arr, int *temp_SDS_detect_num, int SDS_to_output);
+void output_sim_summary(SimulationStruct* sim, int *total_SDS_detect_num);
 //void calculate_reflectance(Fibers* f, float *result, float (*pathlength_weight_arr)[NUM_LAYER + 1][detected_num_total], int *total_SDS_detect_num, int *temp_SDS_detect_num);
 void calculate_reflectance(Fibers* f, float *result, float ***pathlength_weight_arr, int *total_SDS_detect_num, int *temp_SDS_detect_num);
 void input_g(int index, G_Array *g);
@@ -116,7 +117,9 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char
 	}
 	//cout << "#" << index << " Simulation done!\n";
 
+	output_SDS_pathlength(pathlength_weight_arr, temp_SDS_detect_num, 0);
 	output_fiber(simulation, reflectance, output);
+	output_sim_summary(simulation, total_SDS_detect_num);
 
 	// free the memory
 	FreeMemStructs(&HostMem, &DeviceMem);
@@ -152,16 +155,17 @@ void calculate_reflectance(Fibers* f, float *result, float ***pathlength_weight_
 				if (f[i].photon_detected[k]) {
 					// record the weight, count detected photon number, and record pathlength
 					result[k - 1] += f[i].data[k];
-					temp_SDS_detect_num[k - 1]++;
-					total_SDS_detect_num[k - 1]++;
 					
-					if (temp_SDS_detect_num[k - 1] >= detected_num_total) {
-						output_SDS_pathlength(pathlength_weight_arr, temp_SDS_detect_num, k);
-					}
-						
 					pathlength_weight_arr[k - 1][0][temp_SDS_detect_num[k - 1]] = f[i].data[k];
 					for (int l = 0; l < NUM_LAYER; l++) {
 						pathlength_weight_arr[k - 1][l + 1][temp_SDS_detect_num[k - 1]] = f[i].layer_pathlength[l];
+					}
+					
+					temp_SDS_detect_num[k - 1]++;
+					total_SDS_detect_num[k - 1]++;
+
+					if (temp_SDS_detect_num[k - 1] >= detected_num_total) {
+						output_SDS_pathlength(pathlength_weight_arr, temp_SDS_detect_num, k);
 					}
 				}
 			}

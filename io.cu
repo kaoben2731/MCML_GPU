@@ -180,29 +180,49 @@ void generate_filename(char *filename, int SDS_number)
 // SDS_to_output: exact number of SDS to output, 1 for SDS1 , 0 for output all SDS
 void output_SDS_pathlength(float ***pathlength_weight_arr, int *temp_SDS_detect_num, int SDS_to_output)
 {
-	double scale1 = (double)0xFFFFFFFF * (double)sim->number_of_photons;
-	double scale2; // scale for different r and z
-
+	int start_SDS_index, end_SDS_index;
 	if (SDS_to_output==0){
-		for (int s = 0; s < NUM_OF_DETECTOR; s++) {
-			char output[100];
-			generate_filename(output, s+1);
-			cout << "output to " << output << endl;
-
-			// output the pathlength
-			ofstream myfile;
-			myfile.open(output, ios::app);
-			for (int i = 0; i < temp_SDS_detect_num[s]; i++) {
-				for (int j = 0; j <= NUM_LAYER; j++) {
-					myfile<<pathlength_weight_arr[s][j][i]
-				}
-			}
-		}
+		start_SDS_index = 0;
+		end_SDS_index = NUM_OF_DETECTOR;
 	}
-	
+	else {
+		start_SDS_index = SDS_to_output - 1;
+		end_SDS_index = SDS_to_output;
+	}
 
+	for (int s = start_SDS_index; s < end_SDS_index; s++) {
+		char output[100];
+		generate_filename(output, s + 1);
+		cout << "output to: " << output << endl;
 
+		// output the pathlength
+		ofstream myfile;
+		myfile.open(output, ios::app);
+		for (int i = 0; i < temp_SDS_detect_num[s]; i++) {
+			for (int j = 0; j <= NUM_LAYER; j++) {
+				myfile << pathlength_weight_arr[s][j][i] << '\t';
+			}
+			myfile << endl;
+		}
+		myfile.close();
+		temp_SDS_detect_num[s] = 0;
+	}
 }
+
+void output_sim_summary(SimulationStruct* sim, int *total_SDS_detect_num)
+{
+	ofstream myfile;
+	myfile.open("sumary.txt", ios::app);
+
+	double scale1 = (double)0xFFFFFFFF * (double)sim->number_of_photons;
+	
+	myfile << "Photon weight should be divided by " << scale1 << endl << "Detected photon number:" << endl;
+	for (int i = 0; i < NUM_LAYER; i++) {
+		myfile << "SDS " << i << ":\t" << total_SDS_detect_num[i] << endl;
+	}
+	myfile.close();
+}
+
 /*
 void output_A_rz(SimulationStruct* sim, unsigned long long *data, char* output)
 {
