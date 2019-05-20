@@ -48,7 +48,7 @@ using namespace std;
 #define n_source           1.457//1.457//1.457//1.61 //YU-modified
 #define illumination_r     0.075//0.075		//radius //Wang-modified //skin:0.025  IJV:0.075
 #define collect_r          0.02//0.02//0.025//0.02			//radius //Wang-modified //skin:0.025  IJV:0.02
-#define NUMBER_PHOTONS     1000000000//1000000000//50000000//400000000 -skin
+#define NUMBER_PHOTONS     500000000//1000000000//50000000//400000000 -skin
 #define NUMBER_SIMULATION  1//42//31//54//36  //IJV:36 skin:4
 
 //#define WEIGHT 0.0001f

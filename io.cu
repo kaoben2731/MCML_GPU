@@ -1,4 +1,5 @@
 #include "header.h"
+#include <string>
 
 void output_fiber(SimulationStruct* sim, float *data, char* output)
 {
@@ -153,6 +154,54 @@ int read_mua_mus(SimulationStruct** simulations, char* input) //Wang modified
 		(*simulations)[i].start_weight = start_weight;
 	}
 	return n_simulations;
+}
+
+void generate_filename(char *filename, int SDS_number)
+{
+	// make the output file name
+	char output[100] = "pathlength_SDS_";
+	char postfix[10] = ".txt";
+	string SDS_num = to_string(SDS_number + 1);
+	int i = 0;
+	for (; output[i] != '\0'; i++) {
+		filename[i] = output[i];
+	}
+	for (int j = 0; j < SDS_num.length(); j++) {
+		filename[i] = SDS_num[j];
+		i++;
+	}
+	for (int j = 0; postfix[j] != '\0'; j++) {
+		filename[i] = postfix[j];
+		i++;
+	}
+	filename[i] = '\0';
+}
+
+// SDS_to_output: exact number of SDS to output, 1 for SDS1 , 0 for output all SDS
+void output_SDS_pathlength(float ***pathlength_weight_arr, int *temp_SDS_detect_num, int SDS_to_output)
+{
+	double scale1 = (double)0xFFFFFFFF * (double)sim->number_of_photons;
+	double scale2; // scale for different r and z
+
+	if (SDS_to_output==0){
+		for (int s = 0; s < NUM_OF_DETECTOR; s++) {
+			char output[100];
+			generate_filename(output, s+1);
+			cout << "output to " << output << endl;
+
+			// output the pathlength
+			ofstream myfile;
+			myfile.open(output, ios::app);
+			for (int i = 0; i < temp_SDS_detect_num[s]; i++) {
+				for (int j = 0; j <= NUM_LAYER; j++) {
+					myfile<<pathlength_weight_arr[s][j][i]
+				}
+			}
+		}
+	}
+	
+
+
 }
 /*
 void output_A_rz(SimulationStruct* sim, unsigned long long *data, char* output)

@@ -25,7 +25,8 @@ __device__ void AtomicAddULL(unsigned long long* address, unsigned int add);
 __device__ void detect(PhotonStruct* p, Fibers* f);
 __device__ int binarySearch(float *data, float value);
 void fiber_initialization(Fibers* f, float fiber1_position); //Wang modified
-void output_fiber(SimulationStruct* sim, float* reflectance, char* output); //Wang modified
+void output_fiber(SimulationStruct* sim, float* reflectance, char* output, float ***pathlength_weight_arr); //Wang modified
+void output_SDS_pathlength(float ***pathlength_weight_arr, int *temp_SDS_detect_num, int SDS_to_output);
 //void calculate_reflectance(Fibers* f, float *result, float (*pathlength_weight_arr)[NUM_LAYER + 1][detected_num_total], int *total_SDS_detect_num, int *temp_SDS_detect_num);
 void calculate_reflectance(Fibers* f, float *result, float ***pathlength_weight_arr, int *total_SDS_detect_num, int *temp_SDS_detect_num);
 void input_g(int index, G_Array *g);
@@ -44,7 +45,7 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char
 	printf("to here\n");
 	unsigned long long seed = time(NULL);
 	float reflectance[NUM_OF_DETECTOR] = { 0 }; //record reflectance of fibers
-	//float pathlength_weight_arr[NUM_OF_DETECTOR][NUM_LAYER + 1][detected_num_total] = { 0 }; // record the pathlength and weight for each photon, in each layer, and for each detector
+	//float pathlength_weight_arr[NUM_OF_DETECTOR][NUM_LAYER + 1][detected_num_total]
 	float*** pathlength_weight_arr = new float**[NUM_OF_DETECTOR]; // record the pathlength and weight for each photon, in each layer, and for each detector
 	for (int i = 0; i < NUM_OF_DETECTOR; i++) {
 		pathlength_weight_arr[i] = new float*[NUM_LAYER + 1];
@@ -115,9 +116,18 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char
 	}
 	//cout << "#" << index << " Simulation done!\n";
 
-	output_fiber(simulation, reflectance, output); //Wang modified
+	output_fiber(simulation, reflectance, output);
 
+	// free the memory
 	FreeMemStructs(&HostMem, &DeviceMem);
+
+	for (int i = 0; i < NUM_OF_DETECTOR; i++) {
+		for (int j = 0; j < NUM_LAYER + 1; j++) {
+			delete[] pathlength_weight_arr[i][j];
+		}
+		delete[] pathlength_weight_arr[i];
+	}
+	delete[] pathlength_weight_arr;
 }
 
 //void calculate_reflectance(Fibers* f, float *result, float (*pathlength_weight_arr)[NUM_LAYER + 1][detected_num_total], int *total_SDS_detect_num, int *temp_SDS_detect_num)
@@ -145,6 +155,10 @@ void calculate_reflectance(Fibers* f, float *result, float ***pathlength_weight_
 					temp_SDS_detect_num[k - 1]++;
 					total_SDS_detect_num[k - 1]++;
 					
+					if (temp_SDS_detect_num[k - 1] >= detected_num_total) {
+						output_SDS_pathlength(pathlength_weight_arr, temp_SDS_detect_num, k);
+					}
+						
 					pathlength_weight_arr[k - 1][0][temp_SDS_detect_num[k - 1]] = f[i].data[k];
 					for (int l = 0; l < NUM_LAYER; l++) {
 						pathlength_weight_arr[k - 1][l + 1][temp_SDS_detect_num[k - 1]] = f[i].layer_pathlength[l];
