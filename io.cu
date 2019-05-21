@@ -180,7 +180,13 @@ void generate_filename(char *filename, int SDS_number)
 // SDS_to_output: exact number of SDS to output, 1 for SDS1 , 0 for output all SDS
 void output_SDS_pathlength(float ***pathlength_weight_arr, int *temp_SDS_detect_num, int SDS_to_output)
 {
-	cout << "SDS_to_output= " << SDS_to_output << endl;
+	if (SDS_to_output != 0) {
+		cout << "SDS_to_output= " << SDS_to_output << endl;
+	}
+	else {
+		cout << "SDS_to_output= all" << endl;
+	}
+
 	int start_SDS_index, end_SDS_index;
 	if (SDS_to_output==0){
 		start_SDS_index = 0;
@@ -194,7 +200,7 @@ void output_SDS_pathlength(float ***pathlength_weight_arr, int *temp_SDS_detect_
 	for (int s = start_SDS_index; s < end_SDS_index; s++) {
 		char output[100];
 		generate_filename(output, s + 1);
-		cout << "output to: " << output << endl;
+		//cout << "output to: " << output << ", add " << temp_SDS_detect_num[s] << " photons" << endl;
 
 		// output the pathlength
 		ofstream myfile;
@@ -203,7 +209,7 @@ void output_SDS_pathlength(float ***pathlength_weight_arr, int *temp_SDS_detect_
 			for (int j = 0; j <= NUM_LAYER; j++) {
 				myfile << pathlength_weight_arr[s][j][i] << '\t';
 			}
-			myfile << endl << "=====" << endl;
+			myfile << endl;
 		}
 		myfile.close();
 		temp_SDS_detect_num[s] = 0;

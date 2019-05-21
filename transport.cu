@@ -45,6 +45,7 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char
 {
 	printf("to here\n");
 	unsigned long long seed = time(NULL);
+	srand(seed); // set random seed for main loop
 	float reflectance[NUM_OF_DETECTOR] = { 0 }; //record reflectance of fibers
 	//float pathlength_weight_arr[NUM_OF_DETECTOR][NUM_LAYER + 1][detected_num_total]
 	float*** pathlength_weight_arr = new float**[NUM_OF_DETECTOR]; // record the pathlength and weight for each photon, in each layer, and for each detector
@@ -93,7 +94,7 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char
 		cudaMemcpy(DeviceMem.f, HostMem.f, NUM_THREADS * sizeof(Fibers), cudaMemcpyHostToDevice); //malloc sizeof(FIbers) equals to 13*(5*4)
 
 																								  //run the kernel
-		seed = time(NULL);
+		seed = rand(); // get seed for MCD
 		MCd << <dimGrid, dimBlock >> >(DeviceMem, seed);
 		cudaThreadSynchronize(); //CUDA_SAFE_CALL( cudaThreadSynchronize() ); // Wait for all threads to finish
 		cudastat = cudaGetLastError(); // Check if there was an error
@@ -164,13 +165,9 @@ void calculate_reflectance(Fibers* f, float *result, float ***pathlength_weight_
 					temp_SDS_detect_num[k - 1]++;
 					total_SDS_detect_num[k - 1]++;
 
-					output_SDS_pathlength(pathlength_weight_arr, temp_SDS_detect_num, k);
-
-					/*
 					if (temp_SDS_detect_num[k - 1] >= detected_num_total) {
 						output_SDS_pathlength(pathlength_weight_arr, temp_SDS_detect_num, k);
 					}
-					*/
 				}
 			}
 		}
