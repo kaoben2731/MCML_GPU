@@ -11,6 +11,7 @@ void fiber_initialization(Fibers* f, float fiber1_position)
 		for (int j = 0; j < NUM_LAYER; j++) {
 			f[i].layer_pathlength[j] = 0;
 		}
+		f[i].scatter_event = 0;
 		
 		f[i].radius[0] = illumination_r;          // source fiber			
 		f[i].NA[0] = NAOfSource;

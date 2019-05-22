@@ -47,11 +47,11 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char
 	unsigned long long seed = time(NULL);
 	srand(seed); // set random seed for main loop
 	float reflectance[NUM_OF_DETECTOR] = { 0 }; //record reflectance of fibers
-	//float pathlength_weight_arr[NUM_OF_DETECTOR][NUM_LAYER + 1][detected_num_total]
-	float*** pathlength_weight_arr = new float**[NUM_OF_DETECTOR]; // record the pathlength and weight for each photon, in each layer, and for each detector
+	//float pathlength_weight_arr[NUM_OF_DETECTOR][NUM_LAYER + 2][detected_num_total]
+	float*** pathlength_weight_arr = new float**[NUM_OF_DETECTOR]; // record the pathlength and weight for each photon, in each layer, and for each detector, also scatter times
 	for (int i = 0; i < NUM_OF_DETECTOR; i++) {
-		pathlength_weight_arr[i] = new float*[NUM_LAYER + 1];
-		for (int j = 0; j < NUM_LAYER + 1; j++) {
+		pathlength_weight_arr[i] = new float*[NUM_LAYER + 2];
+		for (int j = 0; j < NUM_LAYER + 2; j++) {
 			pathlength_weight_arr[i][j] = new float[detected_num_total];
 			for (int k = 0; k < detected_num_total; k++) {
 				pathlength_weight_arr[i][j][k] = 0;
@@ -143,15 +143,10 @@ void calculate_reflectance(Fibers* f, float *result, float ***pathlength_weight_
 		{
 			for (int k = 1; k <= NUM_OF_DETECTOR; k++) {
 				result[k - 1] += f[i].data[k];
-				/*result[0] += f[i].data[1];
-				result[1] += f[i].data[2];
-				result[2] += f[i].data[3];
-				result[3] += f[i].data[4];*/ //YU-modified
 			}
 		}
 		else
-		{   //Wang-modified
-
+		{
 			for (int k = 1; k <= NUM_OF_DETECTOR; k++) {
 				if (f[i].photon_detected[k]) {
 					// record the weight, count detected photon number, and record pathlength
@@ -161,10 +156,12 @@ void calculate_reflectance(Fibers* f, float *result, float ***pathlength_weight_
 					for (int l = 0; l < NUM_LAYER; l++) {
 						pathlength_weight_arr[k - 1][l + 1][temp_SDS_detect_num[k - 1]] = f[i].layer_pathlength[l];
 					}
+					pathlength_weight_arr[k - 1][NUM_LAYER + 1][temp_SDS_detect_num[k - 1]] = f[i].scatter_event;
 					
 					temp_SDS_detect_num[k - 1]++;
 					total_SDS_detect_num[k - 1]++;
 
+					// if the array is too big, output it first
 					if (temp_SDS_detect_num[k - 1] >= detected_num_total) {
 						output_SDS_pathlength(pathlength_weight_arr, temp_SDS_detect_num, k);
 					}
@@ -232,6 +229,7 @@ __global__ void MCd(MemStruct DeviceMem, unsigned long long seed)
 		p.y += p.dy*s;
 		p.z += p.dz*s;
 
+		f.scatter_event++;
 		f.layer_pathlength[p.layer-1] += s;
 
 		if (p.z>layers_dc[p.layer].z_max)p.z = layers_dc[p.layer].z_max;//needed?
