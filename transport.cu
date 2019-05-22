@@ -28,7 +28,7 @@ void fiber_initialization(Fibers* f, float fiber1_position); //Wang modified
 void output_fiber(SimulationStruct* sim, float* reflectance, char* output); //Wang modified
 void output_SDS_pathlength(float ***pathlength_weight_arr, int *temp_SDS_detect_num, int SDS_to_output);
 void output_sim_summary(SimulationStruct* sim, int *total_SDS_detect_num);
-//void calculate_reflectance(Fibers* f, float *result, float (*pathlength_weight_arr)[NUM_LAYER + 1][detected_num_total], int *total_SDS_detect_num, int *temp_SDS_detect_num);
+//void calculate_reflectance(Fibers* f, float *result, float (*pathlength_weight_arr)[NUM_LAYER + 1][detected_temp_size], int *total_SDS_detect_num, int *temp_SDS_detect_num);
 void calculate_reflectance(Fibers* f, float *result, float ***pathlength_weight_arr, int *total_SDS_detect_num, int *temp_SDS_detect_num);
 void input_g(int index, G_Array *g);
 int InitG(G_Array* HostG, G_Array* DeviceG, int index);
@@ -43,26 +43,26 @@ __device__ float rn_gen(curandState *s)
 
 void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char* fiber1_position) //Wang modified
 {
-	printf("to here\n");
+	//printf("to here 1\n");
 	unsigned long long seed = time(NULL);
 	srand(seed); // set random seed for main loop
 	float reflectance[NUM_OF_DETECTOR] = { 0 }; //record reflectance of fibers
-	//float pathlength_weight_arr[NUM_OF_DETECTOR][NUM_LAYER + 2][detected_num_total]
+	//float pathlength_weight_arr[NUM_OF_DETECTOR][NUM_LAYER + 2][detected_temp_size]
 	float*** pathlength_weight_arr = new float**[NUM_OF_DETECTOR]; // record the pathlength and weight for each photon, in each layer, and for each detector, also scatter times
 	for (int i = 0; i < NUM_OF_DETECTOR; i++) {
 		pathlength_weight_arr[i] = new float*[NUM_LAYER + 2];
 		for (int j = 0; j < NUM_LAYER + 2; j++) {
-			pathlength_weight_arr[i][j] = new float[detected_num_total];
-			for (int k = 0; k < detected_num_total; k++) {
+			pathlength_weight_arr[i][j] = new float[detected_temp_size];
+			for (int k = 0; k < detected_temp_size; k++) {
 				pathlength_weight_arr[i][j][k] = 0;
 			}
 		}
 	}
 
 	int total_SDS_detect_num[NUM_OF_DETECTOR] = { 0 }; // record number fo detected photon by each detector
-	int temp_SDS_detect_num[NUM_OF_DETECTOR] = { 0 }; // record temp number fo detected photon by each detector, for prevent the collected photon number exceed detected_num_total
+	int temp_SDS_detect_num[NUM_OF_DETECTOR] = { 0 }; // record temp number fo detected photon by each detector, for prevent the collected photon number exceed detected_temp_size
 
-	cout << "to here\n";
+	//cout << "to here 2\n";
 
 	MemStruct DeviceMem;
 	MemStruct HostMem;
@@ -77,6 +77,8 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char
 	dim3 dimBlock(NUM_THREADS_PER_BLOCK);	printf("NUM_THREADS_PER_BLOCK\t%d\n", NUM_THREADS_PER_BLOCK);
 	dim3 dimGrid(NUM_BLOCKS);				printf("NUM_BLOCKS\t%d\n", NUM_BLOCKS);
 
+	//cout << "to here 3\n";
+
 	LaunchPhoton_Global << <dimGrid, dimBlock >> >(DeviceMem, seed);
 	cudaThreadSynchronize(); //CUDA_SAFE_CALL( cudaThreadSynchronize() ); // Wait for all threads to finish
 	cudastat = cudaGetLastError(); // Check if there was an error
@@ -84,7 +86,7 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char
 
 	i = 0;
 
-	cout << "to here\n";
+	//cout << "to here 4\n";
 
 	while (threads_active_total>0)
 	{
@@ -134,7 +136,7 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char
 	delete[] pathlength_weight_arr;
 }
 
-//void calculate_reflectance(Fibers* f, float *result, float (*pathlength_weight_arr)[NUM_LAYER + 1][detected_num_total], int *total_SDS_detect_num, int *temp_SDS_detect_num)
+//void calculate_reflectance(Fibers* f, float *result, float (*pathlength_weight_arr)[NUM_LAYER + 1][detected_temp_size], int *total_SDS_detect_num, int *temp_SDS_detect_num)
 void calculate_reflectance(Fibers* f, float *result, float ***pathlength_weight_arr, int *total_SDS_detect_num, int *temp_SDS_detect_num)
 {
 	for (int i = 0; i < NUM_THREADS; i++)
@@ -147,24 +149,22 @@ void calculate_reflectance(Fibers* f, float *result, float ***pathlength_weight_
 		}
 		else
 		{
-			for (int k = 1; k <= NUM_OF_DETECTOR; k++) {
-				if (f[i].photon_detected[k]) {
-					// record the weight, count detected photon number, and record pathlength
-					result[k - 1] += f[i].data[k];
-					
-					pathlength_weight_arr[k - 1][0][temp_SDS_detect_num[k - 1]] = f[i].data[k];
-					for (int l = 0; l < NUM_LAYER; l++) {
-						pathlength_weight_arr[k - 1][l + 1][temp_SDS_detect_num[k - 1]] = f[i].layer_pathlength[l];
-					}
-					pathlength_weight_arr[k - 1][NUM_LAYER + 1][temp_SDS_detect_num[k - 1]] = f[i].scatter_event;
-					
-					temp_SDS_detect_num[k - 1]++;
-					total_SDS_detect_num[k - 1]++;
+			// record the weight, count detected photon number, and record pathlength
+			for (int k = 0; k < f[i].detected_photon_counter; k++) {
+				int s = f[i].detected_SDS_number[k]; // the detecting SDS, start from 1
+				result[s-1] += f[i].data[k];
+				pathlength_weight_arr[s - 1][0][temp_SDS_detect_num[s - 1]] = f[i].data[k];
+				for (int l = 0; l < NUM_LAYER; l++) {
+					pathlength_weight_arr[s - 1][l + 1][temp_SDS_detect_num[s - 1]] = f[i].layer_pathlength[k][l];
+				}
+				pathlength_weight_arr[s - 1][NUM_LAYER + 1][temp_SDS_detect_num[s - 1]] = f[i].scatter_event[k];
+				
+				temp_SDS_detect_num[s - 1]++;
+				total_SDS_detect_num[s - 1]++;
 
-					// if the array is too big, output it first
-					if (temp_SDS_detect_num[k - 1] >= detected_num_total) {
-						output_SDS_pathlength(pathlength_weight_arr, temp_SDS_detect_num, k);
-					}
+				// if the array is too big, output it first
+				if (temp_SDS_detect_num[s - 1] >= detected_temp_size) {
+					output_SDS_pathlength(pathlength_weight_arr, temp_SDS_detect_num, s);
 				}
 			}
 		}
@@ -229,8 +229,8 @@ __global__ void MCd(MemStruct DeviceMem, unsigned long long seed)
 		p.y += p.dy*s;
 		p.z += p.dz*s;
 
-		f.scatter_event++;
-		f.layer_pathlength[p.layer-1] += s;
+		p.scatter_event++;
+		p.layer_pathlength[p.layer-1] += s;
 
 		if (p.z>layers_dc[p.layer].z_max)p.z = layers_dc[p.layer].z_max;//needed?
 		if (p.z<layers_dc[p.layer].z_min)p.z = layers_dc[p.layer].z_min;//needed?
@@ -335,6 +335,11 @@ __device__ void LaunchPhoton(PhotonStruct* p, curandState *state)
 
 	p->layer = 1;
 	p->first_scatter = true;
+
+	p->scatter_event = 0;
+	for (int i = 0; i < NUM_LAYER; i++) {
+		p->layer_pathlength[i] = 0;
+	}
 
 	p->weight = *start_weight_dc; //specular reflection!
 }
@@ -532,8 +537,17 @@ __device__ void detect(PhotonStruct* p, Fibers* f)
 					if (temp > 1.0f)
 						temp = 1.0f;
 
-					f->data[i] += p->weight  * acos(temp) * RPI;
-					f->photon_detected[i] = true;
+					if (f->detected_photon_counter < SDS_detected_temp_size) {
+						f->detected_SDS_number[f->detected_photon_counter] = i;
+						f->data[f->detected_photon_counter] = p->weight  * acos(temp) * RPI;
+						f->scatter_event[f->detected_photon_counter] = p->scatter_event;
+
+						for (int l = 0; l < NUM_LAYER; l++) {
+							f->layer_pathlength[f->detected_photon_counter][l] = p->layer_pathlength[l];
+						}
+						f->detected_photon_counter++;
+					}
+
 
 				}
 			}

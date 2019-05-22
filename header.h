@@ -55,8 +55,8 @@ using namespace std;
 #define WEIGHTI 429497u //0xFFFFFFFFu*WEIGHT
 #define CHANCE 0.1f
 
-#define detected_num_total 5000 //number of photon should be detected
-
+#define detected_temp_size 5000 //number of photon should be detected
+#define SDS_detected_temp_size 10
 
 // TYPEDEFS
 typedef struct __align__(16)
@@ -80,6 +80,8 @@ typedef struct __align__(16)
 	float weight;			// Photon weight
 	int layer;				// Current layer
 	bool first_scatter; // flag of first scatter
+	float layer_pathlength[NUM_LAYER]; // record the pathlength in each layer for detected photon
+	int scatter_event; // record howmany time the photon had been scattered
 }PhotonStruct;
 
 typedef struct
@@ -96,10 +98,13 @@ typedef struct
 	float NA[NUM_OF_DETECTOR+1];
 	float position[NUM_OF_DETECTOR+1];
 	float angle[NUM_OF_DETECTOR+1];
-	float data[NUM_OF_DETECTOR+1]; // the photon weight detected by this probe
-	bool photon_detected[NUM_OF_DETECTOR + 1]; // whether this fiber had detected photon
-	float layer_pathlength[NUM_LAYER]; // record the pathlength in each layer for detected photon
-	int scatter_event; // record howmany time the photon had been scattered
+	
+	//bool photon_detected[NUM_OF_DETECTOR + 1]; // whether this fiber had detected photon
+	int detected_photon_counter; // record how many photon had been detected by this fiber in one iteration, should not exceed SDS_detected_temp_size
+	float data[SDS_detected_temp_size]; // the photon weight detected by this probe
+	float layer_pathlength[SDS_detected_temp_size][NUM_LAYER]; // record the pathlength in each layer for detected photon
+	int scatter_event[SDS_detected_temp_size]; // record howmany time the photon had been scattered
+	int detected_SDS_number[SDS_detected_temp_size]; // record which SDS detected the photon
 }Fibers;
 
 typedef struct
