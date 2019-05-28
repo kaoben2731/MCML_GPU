@@ -32,7 +32,7 @@ using namespace std;
 
 #define NUM_LAYER 6
 
-#define NUMSTEPS_GPU       6000
+#define NUMSTEPS_GPU       50000
 #define PI                 3.141592654f
 #define RPI                0.318309886f
 #define MAX_LAYERS         100
