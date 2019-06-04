@@ -57,6 +57,7 @@ using namespace std;
 
 #define detected_temp_size 5000 //number of photon should be detected
 #define SDS_detected_temp_size 10
+#define max_scatter_time 10000 // the max times a photon can scatter, if larger than this value, the weight will be too small, and don't need to continue simulate it
 
 // TYPEDEFS
 typedef struct __align__(16)

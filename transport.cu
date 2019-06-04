@@ -282,7 +282,7 @@ __global__ void MCd(MemStruct DeviceMem, unsigned long long seed)
 
 	if (k == true && DeviceMem.thread_active[begin + tx] == 1u)    // photons are not killed after numerous steps
 	{
-		if (atomicAdd(DeviceMem.num_terminated_photons, 1u) >= (*num_photons_dc - NUM_THREADS))
+		if (*DeviceMem.num_terminated_photons >= (*num_photons_dc - NUM_THREADS))
 			DeviceMem.thread_active[begin + tx] = 0u;
 	}
 
@@ -476,6 +476,7 @@ __device__ unsigned int Reflect(PhotonStruct* p, int new_layer, curandState *sta
 __device__ unsigned int PhotonSurvive(PhotonStruct* p, curandState *state)
 {
 	//Calculate wether the photon survives (returns 1) or dies (returns 0)
+	if (p->scatter_event >= max_scatter_time) return 0; // scatter too many times, terminate the photon
 
 	if (p->weight>WEIGHTI) return 1u; // No roulette needed
 	if (p->weight == 0u) return 0u;	// Photon has exited slab, i.e. kill the photon
