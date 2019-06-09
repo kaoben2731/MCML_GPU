@@ -17,16 +17,14 @@ using namespace std;
 
 //The register usage varies with platform. 64-bit Linux and 32.bit Windows XP have been tested.
 #ifdef __linux__ //uses 25 registers per thread (64-bit)
-#define NUM_THREADS_PER_BLOCK 320 //Keep above 192 to eliminate global memory access overhead However, keep low to allow enough registers per thread
-#define NUM_THREADS 17920
-#endif
-
-#ifdef _WIN64
+#define NUM_THREADS_PER_BLOCK 256 //Keep above 192 to eliminate global memory access overhead However, keep low to allow enough registers per thread
+#define NUM_THREADS NUM_BLOCKS*NUM_THREADS_PER_BLOCK
+#elif _WIN64
 #define NUM_THREADS_PER_BLOCK 256  //256 //dimBlock
 #define NUM_THREADS NUM_BLOCKS*NUM_THREADS_PER_BLOCK
 #else //uses 26 registers per thread
 #define NUM_THREADS_PER_BLOCK 288 //Keep above 192 to eliminate global memory access overhead However, keep low to allow enough registers per thread
-#define NUM_THREADS 16128   
+#define NUM_THREADS NUM_BLOCKS*NUM_THREADS_PER_BLOCK   
 #endif
 
 
