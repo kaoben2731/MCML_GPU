@@ -14,6 +14,7 @@ using namespace std;
 
 // DEFINES 
 #define NUM_BLOCKS 5*16//20*16 //5*16 //dimGrid //Keep numblocks a multiple of the #MP's of the GPU (8800GT=14MP)
+// MP= multiprocessor, 1080=20MP, 1080ti=28MP
 
 //The register usage varies with platform. 64-bit Linux and 32.bit Windows XP have been tested.
 #ifdef __linux__ //uses 25 registers per thread (64-bit)
