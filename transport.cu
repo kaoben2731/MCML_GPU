@@ -110,7 +110,7 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char
 		cudaMemcpy(HostMem.f, DeviceMem.f, NUM_THREADS * sizeof(Fibers), cudaMemcpyDeviceToHost); //CUDA_SAFE_CALL(cudaMemcpy(HostMem.f,DeviceMem.f,NUM_THREADS*sizeof(Fibers),cudaMemcpyDeviceToHost));
 		calculate_reflectance(HostMem.f, reflectance, pathlength_weight_arr, total_SDS_detect_num, temp_SDS_detect_num);
 
-		cudaMemcpy(HostMem.num_terminated_photons, DeviceMem.num_terminated_photons, sizeof(unsigned int), cudaMemcpyDeviceToHost);
+		cudaMemcpy(HostMem.num_terminated_photons, DeviceMem.num_terminated_photons, sizeof(unsigned long long), cudaMemcpyDeviceToHost);
 
 		printf("Run %u, Number of photons terminated %u, Threads active %u, photon deteced number for SDSs:", i, *HostMem.num_terminated_photons, threads_active_total);
 		for (int d = 0; d < NUM_OF_DETECTOR; d++) {
