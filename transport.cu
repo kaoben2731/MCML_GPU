@@ -285,7 +285,7 @@ __global__ void MCd(MemStruct DeviceMem, unsigned long long seed)
 		if (*DeviceMem.num_terminated_photons >= (*num_photons_dc - NUM_THREADS))
 			DeviceMem.thread_active[begin + tx] = 0u;
 	}
-
+	
 	__syncthreads();//necessary?
 
 					//save the state of the MC simulation in global memory before exiting

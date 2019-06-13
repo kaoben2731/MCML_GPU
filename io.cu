@@ -29,7 +29,7 @@ void output_fiber(SimulationStruct* sim, float *data, char* output)
 int read_mua_mus(SimulationStruct** simulations, char* input) //Wang modified
 {
 	// parameters to be modified
-	unsigned long number_of_photons = NUMBER_PHOTONS;
+	unsigned long long number_of_photons = NUMBER_PHOTONS;
 	const int n_simulations = NUMBER_SIMULATION;
 
 	int n_layers = NUM_LAYER;                                   //Zhan modified - 5 layers(scalp+skull+CSF+gray matter+white matter); // Wang modified - 4 layers(epi+dermis+sub fat+muscle); double layer, default value = 2
