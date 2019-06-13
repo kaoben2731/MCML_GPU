@@ -112,7 +112,7 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char
 
 		cudaMemcpy(HostMem.num_terminated_photons, DeviceMem.num_terminated_photons, sizeof(unsigned long long), cudaMemcpyDeviceToHost);
 
-		printf("Run %u, Number of photons terminated %u, Threads active %u, photon deteced number for SDSs:", i, *HostMem.num_terminated_photons, threads_active_total);
+		printf("Run %u, Number of photons terminated %llu, Threads active %u, photon deteced number for SDSs:", i, *HostMem.num_terminated_photons, threads_active_total);
 		for (int d = 0; d < NUM_OF_DETECTOR; d++) {
 			printf("\t%d,", total_SDS_detect_num[d]);
 		}
