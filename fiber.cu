@@ -32,6 +32,24 @@ void fiber_initialization(Fibers* f, float fiber1_position)
 		}
 		else
 		{
+			// for UT-Austin's system also our fNIRS system
+			f[i].radius[1] = collect_r;      //fiber 1
+			f[i].NA[1] = NAOfDetector/80; // turn 200um into 2.5um
+			f[i].position[1] = 0.8;
+			f[i].angle[1] = ANGLE*PI / 180;
+
+			f[i].radius[2] = collect_r;      //fuber 2
+			f[i].NA[2] = NAOfDetector;
+			f[i].position[2] = 1.5;
+			f[i].angle[2] = ANGLE*PI / 180;
+
+			f[i].radius[3] = collect_r;      //fiber 3
+			f[i].NA[3] = NAOfDetector;
+			f[i].position[3] = 3.0;
+			f[i].angle[3] = ANGLE*PI / 180;
+
+			// for our old NIRS system
+			/*
 			f[i].radius[1] = collect_r;      //fiber 1
 			f[i].NA[1] = NAOfDetector;
 			f[i].position[1] = 1.45;
@@ -56,6 +74,7 @@ void fiber_initialization(Fibers* f, float fiber1_position)
 			f[i].NA[5] = NAOfDetector;
 			f[i].position[5] = 4.1;
 			f[i].angle[5] = ANGLE*PI / 180;
+			*/
 
 		}
 
