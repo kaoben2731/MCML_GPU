@@ -54,10 +54,9 @@ int read_mua_mus(SimulationStruct** simulations, char* input) //Wang modified
 	float thickness_5[n_simulations], mua_5[n_simulations], mus_5[n_simulations], n_5[n_simulations], g_5[n_simulations];
 	float thickness_6[n_simulations], mua_6[n_simulations], mus_6[n_simulations], n_6[n_simulations], g_6[n_simulations];
 
-	// float upper_thickness[n_simulations], up_mua[n_simulations], up_mus[n_simulations], mid_thickness[n_simulations], mid_mua[n_simulations], mid_mus[n_simulations], third_thickness[n_simulations], third_mua[n_simulations], third_mus[n_simulations], fourth_thickness[n_simulations], fourth_mua[n_simulations], fourth_mus[n_simulations], down_mua[n_simulations], down_mus[n_simulations], up_tissue_n[n_simulations], mid_tissue_n[n_simulations], third_tissue_n[n_simulations], fourth_tissue_n[n_simulations], down_tissue_n[n_simulations], up_g_factor[n_simulations], mid_g_factor[n_simulations], third_g_factor[n_simulations], fourth_g_factor[n_simulations], down_g_factor[n_simulations];
 	for (int i = 0; i < n_simulations; i++)
-		//myfile >> upper_thickness[i] >> up_mua[i] >> up_mus[i] >> up_tissue_n[i] >> up_g_factor[i] >> mid_thickness[i] >> mid_mua[i] >> mid_mus[i] >> mid_tissue_n[i] >> mid_g_factor[i] >> third_thickness[i] >> third_mua[i] >> third_mus[i] >> third_tissue_n[i] >> third_g_factor[i] >> fourth_thickness[i] >> fourth_mua[i] >> fourth_mus[i] >> fourth_tissue_n[i] >> fourth_g_factor[i] >> down_mua[i] >> down_mus[i] >> down_tissue_n[i] >> down_g_factor[i];
-		myfile >> thickness_1[i] >> mua_1[i] >> mus_1[i] >> n_1[i] >> g_1[i] >> thickness_2[i] >> mua_2[i] >> mus_2[i] >> n_2[i] >> g_2[i] >> thickness_3[i] >> mua_3[i] >> mus_3[i] >> n_3[i] >> g_3[i] >> thickness_4[i] >> mua_4[i] >> mus_4[i] >> n_4[i] >> g_4[i] >> thickness_5[i] >> mua_5[i] >> mus_5[i] >> n_5[i] >> g_5[i] >> mua_6[i] >> mus_6[i] >> n_6[i] >> g_6[i];
+		//myfile >> thickness_1[i] >> mua_1[i] >> mus_1[i] >> n_1[i] >> g_1[i] >> thickness_2[i] >> mua_2[i] >> mus_2[i] >> n_2[i] >> g_2[i] >> thickness_3[i] >> mua_3[i] >> mus_3[i] >> n_3[i] >> g_3[i] >> thickness_4[i] >> mua_4[i] >> mus_4[i] >> n_4[i] >> g_4[i] >> thickness_5[i] >> mua_5[i] >> mus_5[i] >> n_5[i] >> g_5[i] >> mua_6[i] >> mus_6[i] >> n_6[i] >> g_6[i];
+		myfile >> thickness_1[i] >> mua_1[i] >> mus_1[i] >> n_1[i] >> g_1[i] >> thickness_2[i] >> mua_2[i] >> mus_2[i] >> n_2[i] >> g_2[i] >> thickness_3[i] >> mua_3[i] >> mus_3[i] >> n_3[i] >> g_3[i] >> thickness_4[i] >> mua_4[i] >> mus_4[i] >> n_4[i] >> g_4[i] >> mua_5[i] >> mus_5[i] >> n_5[i] >> g_5[i];
 	myfile.close();
 
 	/*fstream myfile;
@@ -129,9 +128,11 @@ int read_mua_mus(SimulationStruct** simulations, char* input) //Wang modified
 		(*simulations)[i].layers[5].mua = mua_5[i];
 		(*simulations)[i].layers[5].g = g_5[i];
 		(*simulations)[i].layers[5].z_min = thickness_1[i] + thickness_2[i] + thickness_3[i] + thickness_4[i];
-		(*simulations)[i].layers[5].z_max = thickness_1[i] + thickness_2[i] + thickness_3[i] + thickness_4[i] + thickness_5[i];
+		//(*simulations)[i].layers[5].z_max = thickness_1[i] + thickness_2[i] + thickness_3[i] + thickness_4[i] + thickness_5[i];
+		(*simulations)[i].layers[5].z_max = lower_thickness;
 		(*simulations)[i].layers[5].mutr = 1.0f / (mua_5[i] + mus_5[i]);
 
+		/*
 		// Set the parameters of tissue (6th layer)  //Zhan modified
 		(*simulations)[i].layers[6].n = n_6[i];
 		(*simulations)[i].layers[6].mua = mua_6[i];
@@ -139,6 +140,7 @@ int read_mua_mus(SimulationStruct** simulations, char* input) //Wang modified
 		(*simulations)[i].layers[6].z_min = thickness_1[i] + thickness_2[i] + thickness_3[i] + thickness_4[i] + thickness_5[i];
 		(*simulations)[i].layers[6].z_max = lower_thickness;
 		(*simulations)[i].layers[6].mutr = 1.0f / (mua_6[i] + mus_6[i]);
+		*/
 
 		// Set lower refractive index (medium)
 		(*simulations)[i].layers[n_layers + 1].n = medium_n;		//(*simulations)[i].layers[n_layers+1].n = medium_n[i]; //YU-modified
