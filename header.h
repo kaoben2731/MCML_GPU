@@ -37,7 +37,7 @@ using namespace std;
 #define MAX_LAYERS         100
 #define STR_LEN            200
 #define NORMAL             0                    // 1: normal, 0: oblique
-#define NUM_OF_DETECTOR    (NORMAL ? 5:5) //(NORMAL ? 5:10)		//(NORMAL ? 4:9)       // normal: 4 fibers, oblique: 9 fibers
+#define NUM_OF_DETECTOR    (NORMAL ? 3:3) //(NORMAL ? 5:10)		//(NORMAL ? 4:9)       // normal: 4 fibers, oblique: 9 fibers
 //#define ANGLE              (NORMAL ? 0:45)      // normal: 0 degree, oblique: 45 degree  
 #define ANGLE              (NORMAL ? 0:0)      // normal: 0 degree, oblique: 0 degree  by CY
 

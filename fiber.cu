@@ -33,8 +33,8 @@ void fiber_initialization(Fibers* f, float fiber1_position)
 		else
 		{
 			// for UT-Austin's system also our fNIRS system
-			f[i].radius[1] = collect_r;      //fiber 1
-			f[i].NA[1] = NAOfDetector/80; // turn 200um into 2.5um
+			f[i].radius[1] = collect_r/80;      //fiber 1   // turn 200um into 2.5um
+			f[i].NA[1] = NAOfDetector;
 			f[i].position[1] = 0.8;
 			f[i].angle[1] = ANGLE*PI / 180;
 
