@@ -22,7 +22,7 @@ __device__ void Spin(PhotonStruct*, float, curandState* state);
 __device__ unsigned int Reflect(PhotonStruct*, int, curandState* state);
 __device__ unsigned int PhotonSurvive(PhotonStruct*, curandState* state);
 __device__ void AtomicAddULL(unsigned long long* address, unsigned int add);
-__device__ void detect(PhotonStruct* p, Fibers* f);
+__device__ bool detect(PhotonStruct* p, Fibers* f);
 __device__ int binarySearch(float *data, float value);
 void fiber_initialization(Fibers* f, float fiber1_position); //Wang modified
 void output_fiber(SimulationStruct* sim, float* reflectance, char* output); //Wang modified
@@ -33,6 +33,9 @@ void calculate_reflectance(Fibers* f, float *result, float ***pathlength_weight_
 void input_g(int index, G_Array *g);
 int InitG(G_Array* HostG, G_Array* DeviceG, int index);
 void FreeG(G_Array* HostG, G_Array* DeviceG);
+
+void output_A_rz(SimulationStruct* sim, unsigned long long *data, char* output);
+void output_A0_z(SimulationStruct* sim, unsigned long long *data, char* output);
 
 
 __device__ float rn_gen(curandState *s)
@@ -120,9 +123,16 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char
 	}
 	//cout << "#" << index << " Simulation done!\n";
 
+	// copy the A_rz and A0_z back to host
+	cudaMemcpy(HostMem.A_rz, DeviceMem.A_rz, record_nr * record_nz * sizeof(unsigned long long), cudaMemcpyDeviceToHost);
+	cudaMemcpy(HostMem.A0_z, DeviceMem.A0_z, record_nz * sizeof(unsigned long long), cudaMemcpyDeviceToHost);
+
 	output_SDS_pathlength(pathlength_weight_arr, temp_SDS_detect_num, 0);
 	output_fiber(simulation, reflectance, output);
 	output_sim_summary(simulation, total_SDS_detect_num);
+
+	output_A_rz(simulation, HostMem.A_rz, "A_rz.txt"); // output the absorbance
+	output_A0_z(simulation, HostMem.A0_z, "A0_z.txt");
 
 	// free the memory
 	FreeMemStructs(&HostMem, &DeviceMem);
@@ -244,9 +254,29 @@ __global__ void MCd(MemStruct DeviceMem, unsigned long long seed)
 			{
 				if (new_layer == 0)
 				{ //Diffuse reflectance
-					detect(&p, &f);
+					bool detected = detect(&p, &f);
 					p.weight = 0; // Set the remaining weight to 0, effectively killing the photon
-				}
+					// Store the absorbance for grid
+					if (detected) {
+						unsigned int index, index_old, w_toAdd;
+						index_old = 0;
+						w_toAdd = 0;
+						for (int abs_index = 0; abs_index < p.absorbed_time; abs_index++) {
+							index = p.absorbed_pos_index[abs_index];
+							if (index == index_old)
+							{
+								w_toAdd += p.absorbed_weight[abs_index];
+							}
+							else
+							{
+								AtomicAddULL(&DeviceMem.A_rz[index_old], w_toAdd);
+								index_old = index;
+								w_toAdd = p.absorbed_weight[abs_index];
+							}
+						}
+						if (w_toAdd != 0) {
+							AtomicAddULL(&DeviceMem.A_rz[index_old], w_toAdd);
+						}
 				if (new_layer > *n_layers_dc)
 				{	//Transmitted
 					p.weight = 0; // Set the remaining weight to 0, effectively killing the photon
@@ -260,6 +290,11 @@ __global__ void MCd(MemStruct DeviceMem, unsigned long long seed)
 			w_temp = __float2uint_rn(layers_dc[p.layer].mua*layers_dc[p.layer].mutr*__uint2float_rn(p.weight));
 			//w_temp = layers_dc[p.layer].mua*layers_dc[p.layer].mutr*p.weight;
 			p.weight -= w_temp;
+			if (p.absorbed_time < NUMSTEPS_GPU) {
+				unsigned int index = min(__float2int_rz(__fdividef(p.z, record_dz)), (int)(record_nz - 1)) *record_nr + min(__float2int_rz(__fdividef(sqrtf(p.x*p.x + p.y*p.y), record_dr)), (int)record_nr - 1);
+				p.absorbed_pos_index[p.absorbed_time] = index;
+				p.absorbed_weight[p.absorbed_time] = w_temp;
+				p.absorbed_time += 1;
 
 			Spin(&p, layers_dc[p.layer].g, &state);
 		}
@@ -342,6 +377,7 @@ __device__ void LaunchPhoton(PhotonStruct* p, curandState *state)
 	}
 
 	p->weight = *start_weight_dc; //specular reflection!
+	p->absorbed_time = 0;
 }
 
 
@@ -490,13 +526,14 @@ __device__ unsigned int PhotonSurvive(PhotonStruct* p, curandState *state)
 	return 0u;
 }
 
-__device__ void detect(PhotonStruct* p, Fibers* f)
+__device__ bool detect(PhotonStruct* p, Fibers* f)
 {
 	float angle = ANGLE*PI / 180; //YU-modified
 	float critical = asin(f->NA[1] / n_detector); //YU-modified
 	float uz_rotated = (p->dx*sin(angle)) + (p->dz*cos(angle)); //YU-modified
 	float uz_angle = acos(fabs(uz_rotated)); //YU-modified
 	float distance;
+	bool detected_flag=false;
 
 	// NA consideration
 	if (uz_angle <= critical)  // successfully detected
@@ -548,13 +585,16 @@ __device__ void detect(PhotonStruct* p, Fibers* f)
 						}
 						f->detected_photon_counter++;
 					}
-
+					detected_flag=true;
 
 				}
 			}
 		}
 	}
-	return;
+	if detected_flag
+		return true;
+	else
+		return false;
 }
 
 int InitDCMem(SimulationStruct* sim)
@@ -603,7 +643,20 @@ int InitMemStructs(MemStruct* HostMem, MemStruct* DeviceMem, SimulationStruct* s
 
 	//Allocate states on the device and host
 	cudaMalloc((void**)&DeviceMem->state, NUM_THREADS * sizeof(curandState));
+	int rz_size;
+	rz_size = record_nr*record_nz;
 
+	// Allocate A_rz on host and device
+	HostMem->A_rz = (unsigned long long*) malloc(rz_size * sizeof(unsigned long long));
+	if (HostMem->A_rz == NULL) { printf("Error allocating HostMem->A_rz"); exit(1); }
+	cudaMalloc((void**)&DeviceMem->A_rz, rz_size * sizeof(unsigned long long));
+	cudaMemset(DeviceMem->A_rz, 0, rz_size * sizeof(unsigned long long));
+
+	// Allocate A0_z on host and device
+	HostMem->A0_z = (unsigned long long*) malloc(record_nz * sizeof(unsigned long long));
+	if (HostMem->A0_z == NULL) { printf("Error allocating HostMem->A_rz"); exit(1); }
+	cudaMalloc((void**)&DeviceMem->A0_z, record_nz * sizeof(unsigned long long));
+	cudaMemset(DeviceMem->A0_z, 0, record_nz * sizeof(unsigned long long));																			  
 	return 1;
 }
 
@@ -612,9 +665,13 @@ void FreeMemStructs(MemStruct* HostMem, MemStruct* DeviceMem)
 	free(HostMem->thread_active);
 	free(HostMem->num_terminated_photons);
 	free(HostMem->f);
+	free(HostMem->A_rz);
+	free(HostMem->A0_z);	
 
 	cudaFree(DeviceMem->thread_active);
 	cudaFree(DeviceMem->num_terminated_photons);
 	cudaFree(DeviceMem->f);
 	cudaFree(DeviceMem->state);
+	cudaFree(DeviceMem->A_rz);
+	cudaFree(DeviceMem->A0_z);
 }

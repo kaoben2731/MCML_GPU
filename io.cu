@@ -231,3 +231,44 @@ void output_sim_summary(SimulationStruct* sim, int *total_SDS_detect_num)
 	}
 	myfile.close();
 }
+
+void output_A_rz(SimulationStruct* sim, unsigned long long *data, char* output)
+{
+	ofstream myfile;
+	myfile.open(output, ios::app);
+
+	double scale1 = (double)0xFFFFFFFF * (double)sim->number_of_photons;
+	double scale2; // scale for different r and z
+
+	for (int z = 0; z < record_nz; z++)
+	{
+		for (int r = 0; r < record_nr; r++)
+		{
+			// divided by the small grid volume
+			scale2 = scale1 * 2 * PI*(r + 0.5)*record_dr*record_dr*record_dz;
+			myfile << double(data[z*record_nr + r] / scale2) << "\t";
+
+			// NOT divided by the small grid volume
+			//myfile << double(data[z*record_nr + r] / scale1) << "\t";
+		}
+		myfile << endl;
+	}
+
+	myfile.close();
+}
+
+void output_A0_z(SimulationStruct* sim, unsigned long long *data, char* output)
+{
+	ofstream myfile;
+	myfile.open(output, ios::app);
+
+	double scale1 = (double)0xFFFFFFFF * (double)sim->number_of_photons;
+	double scale2 = scale1 * 2 * PI*(0 + 0.5)*record_dr*record_dr*record_dz; // scale for different r and z
+
+	for (int z = 0; z < record_nz; z++)
+	{
+		myfile << double(data[z] / scale2) << endl;
+	}
+
+	myfile.close();
+}

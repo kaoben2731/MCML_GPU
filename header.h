@@ -58,6 +58,12 @@ using namespace std;
 #define SDS_detected_temp_size 10
 #define max_scatter_time 10000 // the max times a photon can scatter, if larger than this value, the weight will be too small, and don't need to continue simulate it
 
+// define the absorbance array
+#define record_dr 0.01f
+#define record_dz 0.01f
+#define record_nr 1000
+#define record_nz 500
+
 // TYPEDEFS
 typedef struct __align__(16)
 {
@@ -82,6 +88,11 @@ typedef struct __align__(16)
 	bool first_scatter; // flag of first scatter
 	float layer_pathlength[NUM_LAYER]; // record the pathlength in each layer for detected photon
 	int scatter_event; // record howmany time the photon had been scattered
+	int absorbed_time; // for testing how many times photon has been abseorbed
+	//float absorbed_path[NUMSTEPS_GPU][4]; // store the absorbed position and weight
+	unsigned int absorbed_pos_index[NUMSTEPS_GPU]; // store the absorbed position
+	float absorbed_weight[NUMSTEPS_GPU]; // store the absorbed and weight
+
 }PhotonStruct;
 
 typedef struct
@@ -114,6 +125,9 @@ typedef struct
 	unsigned int* thread_active;		// Pointer to the array containing the thread active status
 	unsigned long long* num_terminated_photons;	//Pointer to a scalar keeping track of the number of terminated photons
 	curandState*  state;
+
+	unsigned long long* A_rz;			// array to store absorbance, a nz by nr array
+	unsigned long long* A0_z;			// array to store the first scatter absorbance
 }MemStruct;
 
 typedef struct
