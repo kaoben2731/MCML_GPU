@@ -47,7 +47,7 @@ using namespace std;
 #define n_source           1.457//1.457//1.457//1.61 //YU-modified
 #define illumination_r     0.075//0.075		//radius //Wang-modified //skin:0.025  IJV:0.075
 #define collect_r          0.02//0.02//0.025//0.02			//radius //Wang-modified //skin:0.025  IJV:0.02
-#define NUMBER_PHOTONS     6000000000//1000000000//50000000//400000000 -skin
+#define NUMBER_PHOTONS     1000000000 //1000000000//50000000//400000000 -skin
 #define NUMBER_SIMULATION  1//42//31//54//36  //IJV:36 skin:4
 
 //#define WEIGHT 0.0001f
@@ -90,8 +90,8 @@ typedef struct __align__(16)
 	int scatter_event; // record howmany time the photon had been scattered
 	int absorbed_time; // for testing how many times photon has been abseorbed
 	//float absorbed_path[NUMSTEPS_GPU][4]; // store the absorbed position and weight
-	unsigned int absorbed_pos_index[NUMSTEPS_GPU]; // store the absorbed position
-	float absorbed_weight[NUMSTEPS_GPU]; // store the absorbed and weight
+	unsigned int absorbed_pos_index[detected_temp_size]; // store the absorbed position
+	float absorbed_weight[detected_temp_size]; // store the absorbed and weight
 
 }PhotonStruct;
 

@@ -257,11 +257,13 @@ __global__ void MCd(MemStruct DeviceMem, unsigned long long seed)
 					bool detected = detect(&p, &f);
 					p.weight = 0; // Set the remaining weight to 0, effectively killing the photon
 					// Store the absorbance for grid
-					if (detected) {
+					if (detected)
+					{
 						unsigned int index, index_old, w_toAdd;
 						index_old = 0;
 						w_toAdd = 0;
-						for (int abs_index = 0; abs_index < p.absorbed_time; abs_index++) {
+						for (int abs_index = 0; abs_index < p.absorbed_time; abs_index++)
+						{
 							index = p.absorbed_pos_index[abs_index];
 							if (index == index_old)
 							{
@@ -274,9 +276,12 @@ __global__ void MCd(MemStruct DeviceMem, unsigned long long seed)
 								w_toAdd = p.absorbed_weight[abs_index];
 							}
 						}
-						if (w_toAdd != 0) {
+						if (w_toAdd != 0)
+						{
 							AtomicAddULL(&DeviceMem.A_rz[index_old], w_toAdd);
 						}
+					}
+				}
 				if (new_layer > *n_layers_dc)
 				{	//Transmitted
 					p.weight = 0; // Set the remaining weight to 0, effectively killing the photon
@@ -290,13 +295,14 @@ __global__ void MCd(MemStruct DeviceMem, unsigned long long seed)
 			w_temp = __float2uint_rn(layers_dc[p.layer].mua*layers_dc[p.layer].mutr*__uint2float_rn(p.weight));
 			//w_temp = layers_dc[p.layer].mua*layers_dc[p.layer].mutr*p.weight;
 			p.weight -= w_temp;
-			if (p.absorbed_time < NUMSTEPS_GPU) {
+			if (p.absorbed_time < detected_temp_size) {
 				unsigned int index = min(__float2int_rz(__fdividef(p.z, record_dz)), (int)(record_nz - 1)) *record_nr + min(__float2int_rz(__fdividef(sqrtf(p.x*p.x + p.y*p.y), record_dr)), (int)record_nr - 1);
 				p.absorbed_pos_index[p.absorbed_time] = index;
 				p.absorbed_weight[p.absorbed_time] = w_temp;
 				p.absorbed_time += 1;
 
-			Spin(&p, layers_dc[p.layer].g, &state);
+				Spin(&p, layers_dc[p.layer].g, &state);
+			}
 		}
 
 		if (!PhotonSurvive(&p, &state)) //if the photon doesn't survive
@@ -591,10 +597,14 @@ __device__ bool detect(PhotonStruct* p, Fibers* f)
 			}
 		}
 	}
-	if detected_flag
+	if (detected_flag)
+	{
 		return true;
+	}
 	else
+	{
 		return false;
+	}
 }
 
 int InitDCMem(SimulationStruct* sim)
