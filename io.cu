@@ -209,7 +209,7 @@ void output_SDS_pathlength(float ***pathlength_weight_arr, int *temp_SDS_detect_
 		myfile.open(output, ios::app);
 		for (int i = 0; i < temp_SDS_detect_num[s]; i++) {
 			for (int j = 0; j <= NUM_LAYER + 1; j++) {
-				myfile << pathlength_weight_arr[s][j][i] << '\t';
+				myfile << pathlength_weight_arr[s][i][j] << '\t';
 			}
 			myfile << endl;
 		}

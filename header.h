@@ -86,12 +86,7 @@ typedef struct __align__(16)
 	float weight;			// Photon weight
 	int layer;				// Current layer
 	bool first_scatter; // flag of first scatter
-	float layer_pathlength[NUM_LAYER]; // record the pathlength in each layer for detected photon
 	int scatter_event; // record howmany time the photon had been scattered
-	int absorbed_time; // for testing how many times photon has been abseorbed
-	//float absorbed_path[NUMSTEPS_GPU][4]; // store the absorbed position and weight
-	unsigned int absorbed_pos_index[detected_temp_size]; // store the absorbed position
-	float absorbed_weight[detected_temp_size]; // store the absorbed and weight
 
 	curandState state_seed; // store the initial curandState for the photon
 	curandState state_run; // store the current state of curand
@@ -141,10 +136,6 @@ typedef struct // additional data structure for record fluence rate, pathlength
 
 	unsigned long long* A_rz;			// array to store absorbance, a nz by nr array
 	unsigned long long* A0_z;			// array to store the first scatter absorbance
-
-	//float data[SDS_detected_temp_size]; // the photon weight detected by this probe
-	//float*** layer_pathlength;	// record the pathlength for each photon in each layer for each detector, also the scatter times
-	//							//layer_pathlength[NUM_OF_DETECTOR][detected_temp_size][NUM_LAYER + 2], where each photon has [weight, PL in each layer, scatter time]
 }MemStruct_Replay;
 
 typedef struct
