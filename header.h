@@ -93,6 +93,9 @@ typedef struct __align__(16)
 	unsigned int absorbed_pos_index[detected_temp_size]; // store the absorbed position
 	float absorbed_weight[detected_temp_size]; // store the absorbed and weight
 
+	curandState state_seed;
+	curandState state_run;
+
 }PhotonStruct;
 
 typedef struct
@@ -105,18 +108,30 @@ typedef struct
 
 typedef struct
 {
-	float radius[NUM_OF_DETECTOR+1];
-	float NA[NUM_OF_DETECTOR+1];
-	float position[NUM_OF_DETECTOR+1];
-	float angle[NUM_OF_DETECTOR+1];
-	
+	float radius[NUM_OF_DETECTOR + 1];
+	float NA[NUM_OF_DETECTOR + 1];
+	float position[NUM_OF_DETECTOR + 1];
+	float angle[NUM_OF_DETECTOR + 1];
+	int detected_photon_counter; // record how many photon had been detected by this fiber in one iteration, should not exceed SDS_detected_temp_size
+	float data[SDS_detected_temp_size]; // the photon weight detected by this probe
+	int detected_SDS_number[SDS_detected_temp_size]; // record which SDS detected the photon
+	curandState detected_state[SDS_detected_temp_size]; // store the initial state of detected photons
+}Fibers;
+
+typedef struct
+{
+	float radius[NUM_OF_DETECTOR + 1];
+	float NA[NUM_OF_DETECTOR + 1];
+	float position[NUM_OF_DETECTOR + 1];
+	float angle[NUM_OF_DETECTOR + 1];
+
 	//bool photon_detected[NUM_OF_DETECTOR + 1]; // whether this fiber had detected photon
 	int detected_photon_counter; // record how many photon had been detected by this fiber in one iteration, should not exceed SDS_detected_temp_size
 	float data[SDS_detected_temp_size]; // the photon weight detected by this probe
 	float layer_pathlength[SDS_detected_temp_size][NUM_LAYER]; // record the pathlength in each layer for detected photon
 	int scatter_event[SDS_detected_temp_size]; // record howmany time the photon had been scattered
 	int detected_SDS_number[SDS_detected_temp_size]; // record which SDS detected the photon
-}Fibers;
+}Fibers_Replay;
 
 typedef struct
 {

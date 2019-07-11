@@ -7,12 +7,8 @@ void fiber_initialization(Fibers* f, float fiber1_position)
 		for (int j = 0; j < SDS_detected_temp_size; j++) {
 			f[i].data[j] = 0;
 			f[i].detected_SDS_number[j] = 0;
-			f[i].scatter_event[j] = 0;
-			for (int k = 0; k < NUM_LAYER; k++) {
-				f[i].layer_pathlength[j][k] = 0;
-			}
 		}
-		
+
 		f[i].detected_photon_counter = 0;
 		
 		f[i].radius[0] = illumination_r;          // source fiber			

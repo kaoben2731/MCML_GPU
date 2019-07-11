@@ -3,6 +3,7 @@
 //#include <helper_string.h>  //YU-modified
 //#include <helper_math.h>	//YU-modified
 #include <float.h> //for FLT_MAX
+#include <vector> // for vector
 
 
 int InitMemStructs(MemStruct* HostMem, MemStruct* DeviceMem, SimulationStruct* sim, char* fiber1_position); //Wang modified
@@ -29,7 +30,7 @@ void output_fiber(SimulationStruct* sim, float* reflectance, char* output); //Wa
 void output_SDS_pathlength(float ***pathlength_weight_arr, int *temp_SDS_detect_num, int SDS_to_output);
 void output_sim_summary(SimulationStruct* sim, int *total_SDS_detect_num);
 //void calculate_reflectance(Fibers* f, float *result, float (*pathlength_weight_arr)[NUM_LAYER + 1][detected_temp_size], int *total_SDS_detect_num, int *temp_SDS_detect_num);
-void calculate_reflectance(Fibers* f, float *result, float ***pathlength_weight_arr, int *total_SDS_detect_num, int *temp_SDS_detect_num);
+void calculate_reflectance(Fibers* f, float *result, vector<vector<curandState>>& detected_state_arr);
 void input_g(int index, G_Array *g);
 int InitG(G_Array* HostG, G_Array* DeviceG, int index);
 void FreeG(G_Array* HostG, G_Array* DeviceG);
@@ -46,6 +47,11 @@ __device__ float rn_gen(curandState *s)
 
 void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char* fiber1_position) //Wang modified
 {
+	/*cout << sizeof(curandstate) << endl;
+	cout << sizeof(unsigned long long) << endl;
+	cout << sizeof(int) << endl;*/
+	vector<vector<curandState>> detected_state_arr(NUM_OF_DETECTOR); // the state for detected photon in curand
+
 	//printf("to here 1\n");
 	unsigned long long seed = time(NULL);
 	srand(seed); // set random seed for main loop
@@ -100,7 +106,8 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char
 
 																								  //run the kernel
 		seed = rand(); // get seed for MCD
-		MCd << <dimGrid, dimBlock >> >(DeviceMem, seed);
+		MCd <<<dimGrid, dimBlock >>>(DeviceMem, seed);
+		cout << "after MCd\n";
 		cudaThreadSynchronize(); //CUDA_SAFE_CALL( cudaThreadSynchronize() ); // Wait for all threads to finish
 		cudastat = cudaGetLastError(); // Check if there was an error
 		if (cudastat)printf("Error code=%i, %s.\n", cudastat, cudaGetErrorString(cudastat));
@@ -111,7 +118,9 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char
 		for (ii = 0; ii<NUM_THREADS; ii++) threads_active_total += HostMem.thread_active[ii];
 
 		cudaMemcpy(HostMem.f, DeviceMem.f, NUM_THREADS * sizeof(Fibers), cudaMemcpyDeviceToHost); //CUDA_SAFE_CALL(cudaMemcpy(HostMem.f,DeviceMem.f,NUM_THREADS*sizeof(Fibers),cudaMemcpyDeviceToHost));
-		calculate_reflectance(HostMem.f, reflectance, pathlength_weight_arr, total_SDS_detect_num, temp_SDS_detect_num);
+		cout << "before cal ref\n";
+		calculate_reflectance(HostMem.f, reflectance, detected_state_arr);
+		cout << "after cal ref\n";
 
 		cudaMemcpy(HostMem.num_terminated_photons, DeviceMem.num_terminated_photons, sizeof(unsigned long long), cudaMemcpyDeviceToHost);
 
@@ -146,8 +155,21 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char
 	delete[] pathlength_weight_arr;
 }
 
+void calculate_reflectance(Fibers* f, float *result, vector<vector<curandState>>& detected_state_arr)
+{
+	for (int i = 0; i < NUM_THREADS; i++)
+	{
+		// record the weight, count detected photon number, and record pathlength
+		for (int k = 0; k < f[i].detected_photon_counter; k++) {
+			int s = f[i].detected_SDS_number[k]; // the detecting SDS, start from 1
+			result[s - 1] += f[i].data[k];
+			detected_state_arr[s - 1].push_back(f[i].detected_state[k]);
+		}
+	}
+}
+
 //void calculate_reflectance(Fibers* f, float *result, float (*pathlength_weight_arr)[NUM_LAYER + 1][detected_temp_size], int *total_SDS_detect_num, int *temp_SDS_detect_num)
-void calculate_reflectance(Fibers* f, float *result, float ***pathlength_weight_arr, int *total_SDS_detect_num, int *temp_SDS_detect_num)
+void calculate_reflectance_replay(Fibers_Replay* f, float *result, float ***pathlength_weight_arr, int *total_SDS_detect_num, int *temp_SDS_detect_num)
 {
 	for (int i = 0; i < NUM_THREADS; i++)
 	{
@@ -189,6 +211,121 @@ __device__ void AtomicAddULL(unsigned long long* address, unsigned int add)
 }
 
 __global__ void MCd(MemStruct DeviceMem, unsigned long long seed)
+{
+
+	//Block index
+	int bx = blockIdx.x;
+
+	//Thread index
+	int tx = threadIdx.x;
+
+	//First element processed by the block
+	int begin = NUM_THREADS_PER_BLOCK * bx;
+
+	float s;	//step length
+
+	unsigned int w_temp;
+
+	PhotonStruct p = DeviceMem.p[begin + tx];
+	Fibers f = DeviceMem.f[begin + tx];
+
+	int new_layer;
+
+	curandState state = p.state_run;
+
+	//First, make sure the thread (photon) is active
+	unsigned int ii = 0;
+	if (!DeviceMem.thread_active[begin + tx]) ii = NUMSTEPS_GPU;
+
+	bool k = true;
+
+	for (; ii<NUMSTEPS_GPU; ii++) //this is the main while loop
+	{
+		if (layers_dc[p.layer].mutr != FLT_MAX)
+			s = -__logf(rn_gen(&state))*layers_dc[p.layer].mutr;//sample step length [cm] //HERE AN OPEN_OPEN FUNCTION WOULD BE APPRECIATED
+		else
+			s = 100.0f;//temporary, say the step in glass is 100 cm.
+
+		//Check for layer transitions and in case, calculate s
+		new_layer = p.layer;
+		if (p.z + s*p.dz<layers_dc[p.layer].z_min) {
+			new_layer--;
+			s = __fdividef(layers_dc[p.layer].z_min - p.z, p.dz);
+		} //Check for upwards reflection/transmission & calculate new s
+		if (p.z + s*p.dz>layers_dc[p.layer].z_max) {
+			new_layer++;
+			s = __fdividef(layers_dc[p.layer].z_max - p.z, p.dz);
+		} //Check for downward reflection/transmission
+
+		p.x += p.dx*s;
+		p.y += p.dy*s;
+		p.z += p.dz*s;
+
+		p.scatter_event++;
+
+		if (p.z>layers_dc[p.layer].z_max)p.z = layers_dc[p.layer].z_max;//needed?
+		if (p.z<layers_dc[p.layer].z_min)p.z = layers_dc[p.layer].z_min;//needed?
+
+		if (new_layer != p.layer)
+		{
+			// set the remaining step length to 0
+			s = 0.0f;
+
+			if (Reflect(&p, new_layer, &state) == 0u)//Check for reflection
+			{
+				if (new_layer == 0)
+				{   //Diffuse reflectance
+					bool detected = detect(&p, &f);
+					p.weight = 0; // Set the remaining weight to 0, effectively killing the photon
+				}
+				if (new_layer > *n_layers_dc)
+				{	//Transmitted
+					p.weight = 0; // Set the remaining weight to 0, effectively killing the photon
+				}
+			}
+		}
+
+		if (s > 0.0f)
+		{
+			// Drop weight (apparently only when the photon is scattered)
+			w_temp = __float2uint_rn(layers_dc[p.layer].mua*layers_dc[p.layer].mutr*__uint2float_rn(p.weight));
+			//w_temp = layers_dc[p.layer].mua*layers_dc[p.layer].mutr*p.weight;
+			p.weight -= w_temp;
+			Spin(&p, layers_dc[p.layer].g, &state);
+		}
+
+		if (!PhotonSurvive(&p, &state)) //if the photon doesn't survive
+		{
+			k = false;
+			if (atomicAdd(DeviceMem.num_terminated_photons, 1u) < (*num_photons_dc - NUM_THREADS))
+			{	// Ok to launch another photon
+				LaunchPhoton(&p, &state);//Launch a new photon
+				state = p.state_run; // reload the state of this thread
+			}
+			else
+			{	// No more photons should be launched. 
+				DeviceMem.thread_active[begin + tx] = 0u; // Set thread to inactive
+				ii = NUMSTEPS_GPU;				// Exit main loop
+			}
+		}
+
+	}//end main for loop!
+
+	if (k == true && DeviceMem.thread_active[begin + tx] == 1u)    // photons are not killed after numerous steps
+	{
+		if (*DeviceMem.num_terminated_photons >= (*num_photons_dc - NUM_THREADS))
+			DeviceMem.thread_active[begin + tx] = 0u;
+	}
+
+	__syncthreads();//necessary?
+
+					//save the state of the MC simulation in global memory before exiting
+	DeviceMem.p[begin + tx] = p;	//This one is incoherent!!!
+	DeviceMem.f[begin + tx] = f;
+
+}//end MCd
+
+__global__ void MCd_replay(MemStruct DeviceMem, unsigned long long seed)
 {
 	//Block index
 	int bx = blockIdx.x;
@@ -321,11 +458,14 @@ __global__ void MCd(MemStruct DeviceMem, unsigned long long seed)
 
 	}//end main for loop!
 
+	/* // truly need?
 	if (k == true && DeviceMem.thread_active[begin + tx] == 1u)    // photons are not killed after numerous steps
 	{
 		if (*DeviceMem.num_terminated_photons >= (*num_photons_dc - NUM_THREADS))
 			DeviceMem.thread_active[begin + tx] = 0u;
 	}
+	*/
+	p.state_run = state; // store the current rand state
 	
 	__syncthreads();//necessary?
 
@@ -337,6 +477,8 @@ __global__ void MCd(MemStruct DeviceMem, unsigned long long seed)
 
 __device__ void LaunchPhoton(PhotonStruct* p, curandState *state)
 {
+	p->state_seed = *state; // store the init curandState of photon
+	/*
 	float rnd_position, rnd_Azimuth, rnd_direction, rnd_rotated;
 	float AzimuthAngle;
 	float launchPosition;
@@ -344,6 +486,7 @@ __device__ void LaunchPhoton(PhotonStruct* p, curandState *state)
 	float rotated_angle;
 	float uxprime, uyprime, uzprime;
 	float angle = -ANGLE * PI / 180;
+	*/
 
 
 	//rnd_position = rn_gen(state);
@@ -384,6 +527,7 @@ __device__ void LaunchPhoton(PhotonStruct* p, curandState *state)
 
 	p->weight = *start_weight_dc; //specular reflection!
 	p->absorbed_time = 0;
+	p->state_run = *state; // store the current state of photon after serveral rand
 }
 
 
@@ -398,7 +542,7 @@ __global__ void LaunchPhoton_Global(MemStruct DeviceMem, unsigned long long seed
 	PhotonStruct p;
 
 	curandState state = DeviceMem.state[begin + tx];
-	curand_init(seed, 0, 0, &state);
+	curand_init(seed, begin+tx, 0, &state); // init curandState for each photon
 
 	LaunchPhoton(&p, &state);
 
@@ -584,11 +728,7 @@ __device__ bool detect(PhotonStruct* p, Fibers* f)
 					if (f->detected_photon_counter < SDS_detected_temp_size) {
 						f->detected_SDS_number[f->detected_photon_counter] = i;
 						f->data[f->detected_photon_counter] = p->weight  * acos(temp) * RPI;
-						f->scatter_event[f->detected_photon_counter] = p->scatter_event;
-
-						for (int l = 0; l < NUM_LAYER; l++) {
-							f->layer_pathlength[f->detected_photon_counter][l] = p->layer_pathlength[l];
-						}
+						f->detected_state[f->detected_photon_counter] = p->state_seed;
 						f->detected_photon_counter++;
 					}
 					detected_flag=true;
