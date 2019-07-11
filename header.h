@@ -120,17 +120,10 @@ typedef struct
 
 typedef struct
 {
-	float radius[NUM_OF_DETECTOR + 1];
-	float NA[NUM_OF_DETECTOR + 1];
-	float position[NUM_OF_DETECTOR + 1];
-	float angle[NUM_OF_DETECTOR + 1];
-
-	//bool photon_detected[NUM_OF_DETECTOR + 1]; // whether this fiber had detected photon
-	int detected_photon_counter; // record how many photon had been detected by this fiber in one iteration, should not exceed SDS_detected_temp_size
-	float data[SDS_detected_temp_size]; // the photon weight detected by this probe
-	float layer_pathlength[SDS_detected_temp_size][NUM_LAYER]; // record the pathlength in each layer for detected photon
-	int scatter_event[SDS_detected_temp_size]; // record howmany time the photon had been scattered
-	int detected_SDS_number[SDS_detected_temp_size]; // record which SDS detected the photon
+	float data; // the photon weight detected by this probe
+	float layer_pathlength[NUM_LAYER]; // record the pathlength in each layer for detected photon
+	int scatter_event; // record howmany time the photon had been scattered
+	int detected_SDS_number; // record which SDS detected the photon
 }Fibers_Replay;
 
 typedef struct
@@ -144,12 +137,14 @@ typedef struct
 
 typedef struct // additional data structure for record fluence rate, pathlength
 {
+	Fibers_Replay* f_r;
+
 	unsigned long long* A_rz;			// array to store absorbance, a nz by nr array
 	unsigned long long* A0_z;			// array to store the first scatter absorbance
 
-	float data[SDS_detected_temp_size]; // the photon weight detected by this probe
-	float*** layer_pathlength;	// record the pathlength for each photon in each layer for each detector, also the scatter times
-								//layer_pathlength[NUM_OF_DETECTOR][detected_temp_size][NUM_LAYER + 2], where each photon has [weight, PL in each layer, scatter time]
+	//float data[SDS_detected_temp_size]; // the photon weight detected by this probe
+	//float*** layer_pathlength;	// record the pathlength for each photon in each layer for each detector, also the scatter times
+	//							//layer_pathlength[NUM_OF_DETECTOR][detected_temp_size][NUM_LAYER + 2], where each photon has [weight, PL in each layer, scatter time]
 }MemStruct_Replay;
 
 typedef struct

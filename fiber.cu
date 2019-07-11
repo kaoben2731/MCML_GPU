@@ -76,3 +76,17 @@ void fiber_initialization(Fibers* f, float fiber1_position)
 
 	}
 }
+
+void fiber_initialization_replay(Fibers_Replay* f_r, float fiber1_position)
+{
+	for (int i = 0; i < NUM_THREADS; i++)
+	{
+		f_r[i].data = 0;
+		f_r[i].scatter_event = 0;
+		f_r[i].detected_SDS_number = 0;
+		for (int l = 0; l < NUM_LAYER; l++)
+		{
+			f_r[i].layer_pathlength[l] = 0;
+		}
+	}
+}
