@@ -126,22 +126,22 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char
 
 		printf("Run %u, Number of photons terminated %llu, Threads active %u, photon deteced number for SDSs:", i, *HostMem.num_terminated_photons, threads_active_total);
 		for (int d = 0; d < NUM_OF_DETECTOR; d++) {
-			printf("\t%d,", total_SDS_detect_num[d]);
+			printf("\t%d,", detected_state_arr[d].size());
 		}
 		printf("\n");
 	}
 	//cout << "#" << index << " Simulation done!\n";
 
 	// copy the A_rz and A0_z back to host
-	cudaMemcpy(HostMem.A_rz, DeviceMem.A_rz, record_nr * record_nz * sizeof(unsigned long long), cudaMemcpyDeviceToHost);
-	cudaMemcpy(HostMem.A0_z, DeviceMem.A0_z, record_nz * sizeof(unsigned long long), cudaMemcpyDeviceToHost);
+	/*cudaMemcpy(HostMem.A_rz, DeviceMem.A_rz, record_nr * record_nz * sizeof(unsigned long long), cudaMemcpyDeviceToHost);
+	cudaMemcpy(HostMem.A0_z, DeviceMem.A0_z, record_nz * sizeof(unsigned long long), cudaMemcpyDeviceToHost);*/
 
 	output_SDS_pathlength(pathlength_weight_arr, temp_SDS_detect_num, 0);
 	output_fiber(simulation, reflectance, output);
 	output_sim_summary(simulation, total_SDS_detect_num);
 
-	output_A_rz(simulation, HostMem.A_rz, "A_rz.txt"); // output the absorbance
-	output_A0_z(simulation, HostMem.A0_z, "A0_z.txt");
+	//output_A_rz(simulation, HostMem.A_rz, "A_rz.txt"); // output the absorbance
+	//output_A0_z(simulation, HostMem.A0_z, "A0_z.txt");
 
 	// free the memory
 	FreeMemStructs(&HostMem, &DeviceMem);
@@ -231,7 +231,7 @@ __global__ void MCd(MemStruct DeviceMem, unsigned long long seed)
 
 	int new_layer;
 
-	curandState state = p.state_run;
+	curandState state = p.state_run; // get the state of curand from the photon
 
 	//First, make sure the thread (photon) is active
 	unsigned int ii = 0;
@@ -311,11 +311,14 @@ __global__ void MCd(MemStruct DeviceMem, unsigned long long seed)
 
 	}//end main for loop!
 
-	if (k == true && DeviceMem.thread_active[begin + tx] == 1u)    // photons are not killed after numerous steps
-	{
-		if (*DeviceMem.num_terminated_photons >= (*num_photons_dc - NUM_THREADS))
-			DeviceMem.thread_active[begin + tx] = 0u;
-	}
+	p.state_run = state; // store the current curand state into the photon
+
+	//// truly need?
+	//if (k == true && DeviceMem.thread_active[begin + tx] == 1u)    // photons are not killed after numerous steps
+	//{
+	//	if (*DeviceMem.num_terminated_photons >= (*num_photons_dc - NUM_THREADS))
+	//		DeviceMem.thread_active[begin + tx] = 0u;
+	//}
 
 	__syncthreads();//necessary?
 
@@ -343,10 +346,11 @@ __global__ void MCd_replay(MemStruct DeviceMem, unsigned long long seed)
 	PhotonStruct p = DeviceMem.p[begin + tx];
 	Fibers f = DeviceMem.f[begin + tx];
 
-	int new_layer;
-
 	curandState state = DeviceMem.state[begin + tx];
-	curand_init(seed, begin + tx, 0, &state);
+
+	LaunchPhoton(&p, &state);
+
+	int new_layer;
 
 	//First, make sure the thread (photon) is active
 	unsigned int ii = 0;
@@ -458,13 +462,7 @@ __global__ void MCd_replay(MemStruct DeviceMem, unsigned long long seed)
 
 	}//end main for loop!
 
-	/* // truly need?
-	if (k == true && DeviceMem.thread_active[begin + tx] == 1u)    // photons are not killed after numerous steps
-	{
-		if (*DeviceMem.num_terminated_photons >= (*num_photons_dc - NUM_THREADS))
-			DeviceMem.thread_active[begin + tx] = 0u;
-	}
-	*/
+
 	p.state_run = state; // store the current rand state
 	
 	__syncthreads();//necessary?
@@ -797,6 +795,25 @@ int InitMemStructs(MemStruct* HostMem, MemStruct* DeviceMem, SimulationStruct* s
 	rz_size = record_nr*record_nz;
 
 	// Allocate A_rz on host and device
+	/*HostMem->A_rz = (unsigned long long*) malloc(rz_size * sizeof(unsigned long long));
+	if (HostMem->A_rz == NULL) { printf("Error allocating HostMem->A_rz"); exit(1); }
+	cudaMalloc((void**)&DeviceMem->A_rz, rz_size * sizeof(unsigned long long));
+	cudaMemset(DeviceMem->A_rz, 0, rz_size * sizeof(unsigned long long));*/
+
+	// Allocate A0_z on host and device
+	/*HostMem->A0_z = (unsigned long long*) malloc(record_nz * sizeof(unsigned long long));
+	if (HostMem->A0_z == NULL) { printf("Error allocating HostMem->A_rz"); exit(1); }
+	cudaMalloc((void**)&DeviceMem->A0_z, record_nz * sizeof(unsigned long long));
+	cudaMemset(DeviceMem->A0_z, 0, record_nz * sizeof(unsigned long long));*/
+	return 1;
+}
+
+int InitMemStructs_replay(MemStruct_Replay* HostMem, MemStruct_Replay* DeviceMem, SimulationStruct* sim, char* fiber1_position, int* number_detected_photon) //Wang modified
+{
+	int rz_size;
+	rz_size = record_nr*record_nz;
+
+	// Allocate A_rz on host and device
 	HostMem->A_rz = (unsigned long long*) malloc(rz_size * sizeof(unsigned long long));
 	if (HostMem->A_rz == NULL) { printf("Error allocating HostMem->A_rz"); exit(1); }
 	cudaMalloc((void**)&DeviceMem->A_rz, rz_size * sizeof(unsigned long long));
@@ -806,7 +823,28 @@ int InitMemStructs(MemStruct* HostMem, MemStruct* DeviceMem, SimulationStruct* s
 	HostMem->A0_z = (unsigned long long*) malloc(record_nz * sizeof(unsigned long long));
 	if (HostMem->A0_z == NULL) { printf("Error allocating HostMem->A_rz"); exit(1); }
 	cudaMalloc((void**)&DeviceMem->A0_z, record_nz * sizeof(unsigned long long));
-	cudaMemset(DeviceMem->A0_z, 0, record_nz * sizeof(unsigned long long));																			  
+	cudaMemset(DeviceMem->A0_z, 0, record_nz * sizeof(unsigned long long));
+
+	HostMem->layer_pathlength = new float**[NUM_OF_DETECTOR];
+	DeviceMem->layer_pathlength = new float**[NUM_OF_DETECTOR];
+	for (int i = 0; i < NUM_OF_DETECTOR; i++) 
+	{
+		HostMem->data[i] = 0;
+		DeviceMem->data[i] = 0;
+
+		HostMem->layer_pathlength[i] = new float*[number_detected_photon[i]];
+		DeviceMem->layer_pathlength[i] = new float*[number_detected_photon[i]];
+		for (int j = 0; j < number_detected_photon[i]; j++)
+		{
+			HostMem->layer_pathlength[i][j] = new float[NUM_LAYER + 2];
+			DeviceMem->layer_pathlength[i][j] = new float[NUM_LAYER + 2];
+			for (int k = 0; k < NUM_LAYER + 2; k++)
+			{
+				HostMem->layer_pathlength[i][j][k] = 0;
+				DeviceMem->layer_pathlength[i][j][k] = 0;
+			}
+		}
+	}
 	return 1;
 }
 
@@ -815,13 +853,22 @@ void FreeMemStructs(MemStruct* HostMem, MemStruct* DeviceMem)
 	free(HostMem->thread_active);
 	free(HostMem->num_terminated_photons);
 	free(HostMem->f);
-	free(HostMem->A_rz);
-	free(HostMem->A0_z);	
 
 	cudaFree(DeviceMem->thread_active);
 	cudaFree(DeviceMem->num_terminated_photons);
 	cudaFree(DeviceMem->f);
 	cudaFree(DeviceMem->state);
+}
+
+void FreeMemStructs(MemStruct_Replay* HostMem, MemStruct_Replay* DeviceMem)
+{
+	free(HostMem->A_rz);
+	free(HostMem->A0_z);
+	free(HostMem->data);
+	free(HostMem->layer_pathlength);
+
 	cudaFree(DeviceMem->A_rz);
 	cudaFree(DeviceMem->A0_z);
+	cudaFree(DeviceMem->data);
+	cudaFree(DeviceMem->layer_pathlength);
 }

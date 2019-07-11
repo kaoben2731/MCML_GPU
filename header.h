@@ -47,7 +47,7 @@ using namespace std;
 #define n_source           1.457//1.457//1.457//1.61 //YU-modified
 #define illumination_r     0.075//0.075		//radius //Wang-modified //skin:0.025  IJV:0.075
 #define collect_r          0.02//0.02//0.025//0.02			//radius //Wang-modified //skin:0.025  IJV:0.02
-#define NUMBER_PHOTONS     1000000000 //1000000000//50000000//400000000 -skin
+#define NUMBER_PHOTONS     10000000 //1000000000//50000000//400000000 -skin
 #define NUMBER_SIMULATION  1//42//31//54//36  //IJV:36 skin:4
 
 //#define WEIGHT 0.0001f
@@ -93,8 +93,8 @@ typedef struct __align__(16)
 	unsigned int absorbed_pos_index[detected_temp_size]; // store the absorbed position
 	float absorbed_weight[detected_temp_size]; // store the absorbed and weight
 
-	curandState state_seed;
-	curandState state_run;
+	curandState state_seed; // store the initial curandState for the photon
+	curandState state_run; // store the current state of curand
 
 }PhotonStruct;
 
@@ -140,10 +140,17 @@ typedef struct
 	unsigned int* thread_active;		// Pointer to the array containing the thread active status
 	unsigned long long* num_terminated_photons;	//Pointer to a scalar keeping track of the number of terminated photons
 	curandState*  state;
+}MemStruct;
 
+typedef struct // additional data structure for record fluence rate, pathlength
+{
 	unsigned long long* A_rz;			// array to store absorbance, a nz by nr array
 	unsigned long long* A0_z;			// array to store the first scatter absorbance
-}MemStruct;
+
+	float data[SDS_detected_temp_size]; // the photon weight detected by this probe
+	float*** layer_pathlength;	// record the pathlength for each photon in each layer for each detector, also the scatter times
+								//layer_pathlength[NUM_OF_DETECTOR][detected_temp_size][NUM_LAYER + 2], where each photon has [weight, PL in each layer, scatter time]
+}MemStruct_Replay;
 
 typedef struct
 {
