@@ -115,6 +115,7 @@ typedef struct
 
 typedef struct
 {
+	bool have_detected;
 	float data; // the photon weight detected by this probe
 	float layer_pathlength[NUM_LAYER]; // record the pathlength in each layer for detected photon
 	int scatter_event; // record howmany time the photon had been scattered

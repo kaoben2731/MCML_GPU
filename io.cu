@@ -158,15 +158,15 @@ int read_mua_mus(SimulationStruct** simulations, char* input) //Wang modified
 	return n_simulations;
 }
 
-void generate_filename(char *filename, int SDS_number)
+void generate_filename(char *filename, char* prefix,int SDS_number)
 {
 	// make the output file name
-	char output[100] = "pathlength_SDS_";
+	//char prefix[100] = "pathlength_SDS_";
 	char postfix[10] = ".txt";
 	string SDS_num = to_string(SDS_number);
 	int i = 0;
-	for (; output[i] != '\0'; i++) {
-		filename[i] = output[i];
+	for (; prefix[i] != '\0'; i++) {
+		filename[i] = prefix[i];
 	}
 	for (int j = 0; j < SDS_num.length(); j++) {
 		filename[i] = SDS_num[j];
@@ -201,7 +201,7 @@ void output_SDS_pathlength(float ***pathlength_weight_arr, int *temp_SDS_detect_
 
 	for (int s = start_SDS_index; s < end_SDS_index; s++) {
 		char output[100];
-		generate_filename(output, s + 1);
+		generate_filename(output, "pathlength_SDS_", s + 1);
 		//cout << "output to: " << output << ", add " << temp_SDS_detect_num[s] << " photons" << endl;
 
 		// output the pathlength
@@ -232,43 +232,52 @@ void output_sim_summary(SimulationStruct* sim, int *total_SDS_detect_num)
 	myfile.close();
 }
 
-void output_A_rz(SimulationStruct* sim, unsigned long long *data, char* output)
+void output_A_rz(SimulationStruct* sim, unsigned long long *data)
 {
-	ofstream myfile;
-	myfile.open(output, ios::app);
 
 	double scale1 = (double)0xFFFFFFFF * (double)sim->number_of_photons;
 	double scale2; // scale for different r and z
+	
+	for (int s = 0; s < NUM_OF_DETECTOR; s++) {
+		char output[100];
+		generate_filename(output, "A_rz_SDS_", s + 1);
 
-	for (int z = 0; z < record_nz; z++)
-	{
-		for (int r = 0; r < record_nr; r++)
+		ofstream myfile;
+		myfile.open(output, ios::app);
+
+		for (int z = 0; z < record_nz; z++)
 		{
-			// divided by the small grid volume
-			scale2 = scale1 * 2 * PI*(r + 0.5)*record_dr*record_dr*record_dz;
-			myfile << double(data[z*record_nr + r] / scale2) << "\t";
+			for (int r = 0; r < record_nr; r++)
+			{
+				// divided by the small grid volume
+				scale2 = scale1 * 2 * PI*(r + 0.5)*record_dr*record_dr*record_dz;
+				myfile << double(data[s*record_nr*record_nz + z*record_nr + r] / scale2) << "\t";
 
-			// NOT divided by the small grid volume
-			//myfile << double(data[z*record_nr + r] / scale1) << "\t";
+				// NOT divided by the small grid volume
+				//myfile << double(data[z*record_nr + r] / scale1) << "\t";
+			}
+			myfile << endl;
 		}
-		myfile << endl;
+		myfile.close();
 	}
-
-	myfile.close();
 }
 
-void output_A0_z(SimulationStruct* sim, unsigned long long *data, char* output)
+void output_A0_z(SimulationStruct* sim, unsigned long long *data)
 {
-	ofstream myfile;
-	myfile.open(output, ios::app);
-
 	double scale1 = (double)0xFFFFFFFF * (double)sim->number_of_photons;
 	double scale2 = scale1 * 2 * PI*(0 + 0.5)*record_dr*record_dr*record_dz; // scale for different r and z
 
-	for (int z = 0; z < record_nz; z++)
-	{
-		myfile << double(data[z] / scale2) << endl;
-	}
+	for (int s = 0; s < NUM_OF_DETECTOR; s++) {
+		char output[100];
+		generate_filename(output, "A0_z_SDS_", s + 1);
 
-	myfile.close();
+		ofstream myfile;
+		myfile.open(output, ios::app);
+
+		for (int z = 0; z < record_nz; z++)
+		{
+			myfile << double(data[s*record_nz + z] / scale2) << endl;
+		}
+		myfile.close();
+	}
 }
