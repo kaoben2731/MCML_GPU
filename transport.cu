@@ -33,10 +33,10 @@ void fiber_initialization(Fibers* f, float fiber1_position); //Wang modified
 void fiber_initialization_replay(Fibers_Replay* f_r);
 void output_fiber(SimulationStruct* sim, float* reflectance, char* output); //Wang modified
 void output_SDS_pathlength(float ***pathlength_weight_arr, int *temp_SDS_detect_num, int SDS_to_output);
-void output_sim_summary(SimulationStruct* sim, int *total_SDS_detect_num);
+void output_sim_summary(SummaryStruct sumStruc);
 //void calculate_reflectance(Fibers* f, float *result, float (*pathlength_weight_arr)[NUM_LAYER + 1][detected_temp_size], int *total_SDS_detect_num, int *temp_SDS_detect_num);
 void calculate_reflectance(Fibers* f, float *result, int* total_SDS_detect_num, vector<vector<curandState>>& detected_state_arr);
-void calculate_reflectance_replay(Fibers_Replay* f_r, float *result, float ***pathlength_weight_arr, int *temp_SDS_detect_num, int SDS_should_be);
+void calculate_reflectance_replay(Fibers_Replay* f_r, float *result, float ***pathlength_weight_arr, int *temp_SDS_detect_num, int *total_SDS_detect_num, int SDS_should_be);
 void input_g(int index, G_Array *g);
 int InitG(G_Array* HostG, G_Array* DeviceG, int index);
 void FreeG(G_Array* HostG, G_Array* DeviceG);
@@ -53,6 +53,10 @@ __device__ float rn_gen(curandState *s)
 
 void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char* fiber1_position) //Wang modified
 {
+	SummaryStruct sumStruc;
+	sumStruc.time1 = clock(); // tic
+	sumStruc.number_of_photons = simulation->number_of_photons;
+
 	vector<vector<curandState>> detected_state_arr(NUM_OF_DETECTOR); // the state for detected photon in curand
 	int total_SDS_detect_num[NUM_OF_DETECTOR] = { 0 }; // record number fo detected photon by each detector
 
@@ -116,7 +120,8 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char
 		printf("          ");
 		//printf("\n");
 	}
-	printf("\nfinish first run\n");
+	sumStruc.time2 = clock(); // toc
+	printf("\nfinish first run, cost %.2f secs\n", (double)(sumStruc.time2 - sumStruc.time1) / CLOCKS_PER_SEC);
 
 	// replay the detected photons
 	
@@ -129,6 +134,7 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char
 	float replay_reflectance[NUM_OF_DETECTOR] = { 0 }; //record reflectance of fibers
 	float*** pathlength_weight_arr = new float**[NUM_OF_DETECTOR]; // record the pathlength and weight for each photon, in each layer, and for each detector, also scatter times
 	for (int s = 0; s < NUM_OF_DETECTOR; s++) {
+		sumStruc.total_SDS_detect_num[s] = total_SDS_detect_num[s];
 		// init the PL array for this detector
 		pathlength_weight_arr[s] = new float*[total_SDS_detect_num[s]]; // record the pathlength and weight for each photon, in each layer, and for each detector, also scatter times
 		for (int j = 0; j < total_SDS_detect_num[s]; j++) {
@@ -137,13 +143,10 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char
 				pathlength_weight_arr[s][j][k] = 0;
 			}
 		}
-		
-		cout << "after replay init\n";
 
 		// prepare seeds to copy to device
 		int replay_counter = 0;
 		while (replay_counter < total_SDS_detect_num[s]) {
-			printf("run for SDS %d, replay %d\n", s, replay_counter);
 			int to_dev_index = 0;
 			for (int t = 0; t < NUM_THREADS; t++) {
 				HostMem.thread_active[t] = 0;
@@ -157,15 +160,11 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char
 			cudaMemcpy(DeviceMem.state, HostMem.state, NUM_THREADS * sizeof(curandState), cudaMemcpyHostToDevice);
 			cudaMemcpy(DeviceMem.thread_active, HostMem.thread_active, NUM_THREADS * sizeof(unsigned int), cudaMemcpyHostToDevice);
 
-			cout << "after copy seed and thread_active to device\n";
-
 			// init fibers
 			fiber_initialization(HostMem.f, atof(fiber1_position));
 			cudaMemcpy(DeviceMem.f, HostMem.f, NUM_THREADS * sizeof(Fibers), cudaMemcpyHostToDevice);
 			fiber_initialization_replay(HostMem_Replay.f_r);
 			cudaMemcpy(DeviceMem_Replay.f_r, HostMem_Replay.f_r, NUM_THREADS * sizeof(Fibers_Replay), cudaMemcpyHostToDevice);
-			
-			cout << "after init fibers\n";
 			
 			// replay
 			MCd_replay << <dimGrid, dimBlock >> > (DeviceMem, DeviceMem_Replay, s);
@@ -173,20 +172,15 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char
 			cudastat = cudaGetLastError(); // Check if there was an error
 			if (cudastat)printf("Error code=%i, %s.\n", cudastat, cudaGetErrorString(cudastat));
 			
-			cout << "after MCd_replay\n";
-			
 			// process result
 			cudaMemcpy(HostMem_Replay.f_r, DeviceMem_Replay.f_r, NUM_THREADS * sizeof(Fibers_Replay), cudaMemcpyDeviceToHost);
-			calculate_reflectance_replay(HostMem_Replay.f_r, replay_reflectance, pathlength_weight_arr, temp_SDS_detect_num, s);
-
-			cout << "after process result\n";
+			calculate_reflectance_replay(HostMem_Replay.f_r, replay_reflectance, pathlength_weight_arr, temp_SDS_detect_num, total_SDS_detect_num, s + 1);
 		}
 		
 	}
 	
 	output_SDS_pathlength(pathlength_weight_arr, temp_SDS_detect_num, 0);
-	output_fiber(simulation, reflectance, output);
-	output_sim_summary(simulation, total_SDS_detect_num);
+	output_fiber(simulation, replay_reflectance, output);
 
 	// copy the A_rz and A0_z back to host
 	cudaMemcpy(HostMem_Replay.A_rz, DeviceMem_Replay.A_rz, NUM_OF_DETECTOR * record_nr * record_nz * sizeof(unsigned long long), cudaMemcpyDeviceToHost);
@@ -194,6 +188,10 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char
 
 	output_A_rz(simulation, HostMem_Replay.A_rz); // output the absorbance
 	output_A0_z(simulation, HostMem_Replay.A0_z);
+
+	sumStruc.time3 = clock();
+	printf("finish replay, cost %.2f secs\n", (double)(sumStruc.time3 - sumStruc.time2) / CLOCKS_PER_SEC);
+	output_sim_summary(sumStruc);
 
 	//cout << "#" << index << " Simulation done!\n";
 
@@ -225,7 +223,7 @@ void calculate_reflectance(Fibers* f, float *result, int* total_SDS_detect_num, 
 }
 
 //void calculate_reflectance(Fibers* f, float *result, float (*pathlength_weight_arr)[NUM_LAYER + 1][detected_temp_size], int *total_SDS_detect_num, int *temp_SDS_detect_num)
-void calculate_reflectance_replay(Fibers_Replay* f_r, float *result, float ***pathlength_weight_arr, int *temp_SDS_detect_num, int SDS_should_be)
+void calculate_reflectance_replay(Fibers_Replay* f_r, float *result, float ***pathlength_weight_arr, int *temp_SDS_detect_num, int *total_SDS_detect_num, int SDS_should_be)
 {
 	for (int i = 0; i < NUM_THREADS; i++)
 	{
@@ -240,6 +238,9 @@ void calculate_reflectance_replay(Fibers_Replay* f_r, float *result, float ***pa
 		pathlength_weight_arr[s - 1][temp_SDS_detect_num[s - 1]][NUM_LAYER + 1] = f_r[i].scatter_event;
 				
 		temp_SDS_detect_num[s - 1]++;
+		if (temp_SDS_detect_num[s - 1] >= total_SDS_detect_num[s - 1]) { // if all the photons are replayed, then break
+			break;
+		}
 	}
 }
 
