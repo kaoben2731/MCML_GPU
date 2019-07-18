@@ -37,17 +37,17 @@ using namespace std;
 #define MAX_LAYERS         100
 #define STR_LEN            200
 #define NORMAL             0                    // 1: normal, 0: oblique
-#define NUM_OF_DETECTOR    (NORMAL ? 3:3) //(NORMAL ? 5:10)		//(NORMAL ? 4:9)       // normal: 4 fibers, oblique: 9 fibers
+#define NUM_OF_DETECTOR    (NORMAL ? 6:6) //(NORMAL ? 5:10)		//(NORMAL ? 4:9)       // normal: 4 fibers, oblique: 9 fibers
 //#define ANGLE              (NORMAL ? 0:45)      // normal: 0 degree, oblique: 45 degree  
 #define ANGLE              (NORMAL ? 0:0)      // normal: 0 degree, oblique: 0 degree  by CY
 
-#define NAOfSource         (NORMAL ? 0.37:0.37)//(NORMAL ? 0.4:0.37)//(NORMAL ? 0.4:0.26)//(NORMAL ? 0.4:0.12)  // normal: 0.4, oblique; 0.22
-#define NAOfDetector       (NORMAL ? 0.12:0.12)//(NORMAL ? 0.4:0.26)//(NORMAL ? 0.4:0.12)  // normal: 0.4, oblique; 0.22
+#define NAOfSource         (NORMAL ? 0.37:0.37) // skin: (NORMAL ? 0.26:0.26)
+#define NAOfDetector       (NORMAL ? 0.12:0.12) // skin: (NORMAL ? 0.26:0.26)
 #define n_detector         1.457//1.457//1.457//1.457 -fiber//1.61 //YU-modified
 #define n_source           1.457//1.457//1.457//1.61 //YU-modified
-#define illumination_r     0.075//0.075		//radius //Wang-modified //skin:0.025  IJV:0.075
-#define collect_r          0.02//0.02//0.025//0.02			//radius //Wang-modified //skin:0.025  IJV:0.02
-#define NUMBER_PHOTONS     1000000000 //1000000000//50000000//400000000 -skin
+#define illumination_r     0.075 //0.075		//radius //Wang-modified //skin:0.025  IJV:0.075
+#define collect_r          0.02 // skin: 0.01
+#define NUMBER_PHOTONS     500000000 //1000000000//50000000//400000000 -skin
 #define NUMBER_SIMULATION  1//42//31//54//36  //IJV:36 skin:4
 
 //#define WEIGHT 0.0001f
