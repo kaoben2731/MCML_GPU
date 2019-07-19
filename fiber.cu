@@ -59,6 +59,37 @@ void fiber_initialization(Fibers* f, float fiber1_position)
 			//f[i].position[6] = 0.073;
 			//f[i].angle[6] = ANGLE*PI / 180;
 
+			// for shorter muscle
+			f[i].radius[1] = collect_r;      //fiber 1   // turn 200um into 10um
+			f[i].NA[1] = NAOfDetector;
+			f[i].position[1] = 0.08;
+			f[i].angle[1] = ANGLE*PI / 180;
+
+			f[i].radius[2] = collect_r;      //fuber 2
+			f[i].NA[2] = NAOfDetector;
+			f[i].position[2] = 0.1;
+			f[i].angle[2] = ANGLE*PI / 180;
+
+			f[i].radius[3] = collect_r;      //fiber 3
+			f[i].NA[3] = NAOfDetector;
+			f[i].position[3] = 0.13;
+			f[i].angle[3] = ANGLE*PI / 180;
+
+			f[i].radius[4] = collect_r;      //fiber 4
+			f[i].NA[4] = NAOfDetector;
+			f[i].position[4] = 0.16;
+			f[i].angle[4] = ANGLE*PI / 180;
+
+			f[i].radius[5] = collect_r;      //fiber 5
+			f[i].NA[5] = NAOfDetector;
+			f[i].position[5] = 0.2;
+			f[i].angle[5] = ANGLE*PI / 180;
+
+			f[i].radius[6] = collect_r;      //fiber 6
+			f[i].NA[6] = NAOfDetector;
+			f[i].position[6] = 0.25;
+			f[i].angle[6] = ANGLE*PI / 180;
+
 			/*
 			// for muscle
 			f[i].radius[1] = collect_r;      //fiber 1   // turn 200um into 10um
@@ -87,7 +118,7 @@ void fiber_initialization(Fibers* f, float fiber1_position)
 			f[i].angle[5] = ANGLE*PI / 180;
 			*/
 
-
+			/*
 			// for longer muscle
 			f[i].radius[1] = collect_r;      //fiber 1   // turn 200um into 10um
 			f[i].NA[1] = NAOfDetector;
@@ -118,6 +149,7 @@ void fiber_initialization(Fibers* f, float fiber1_position)
 			f[i].NA[6] = NAOfDetector;
 			f[i].position[6] = 1.5;
 			f[i].angle[6] = ANGLE*PI / 180;
+			*/
 
 			// for UT-Austin's system also our fNIRS system
 			//f[i].radius[1] = collect_r/20;      //fiber 1   // turn 200um into 10um
