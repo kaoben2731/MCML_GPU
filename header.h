@@ -46,7 +46,7 @@ using namespace std;
 #define n_detector         1.457//1.457//1.457//1.457 -fiber//1.61 //YU-modified
 #define n_source           1.457//1.457//1.457//1.61 //YU-modified
 #define illumination_r     0.075 //0.075		//radius //Wang-modified //skin:0.025  IJV:0.075
-#define collect_r          0.01 // skin: 0.01
+#define collect_r          0.015 // skin: 0.01
 #define NUMBER_PHOTONS     50000000 //1000000000//50000000//400000000 -skin
 #define NUMBER_SIMULATION  1//42//31//54//36  //IJV:36 skin:4
 

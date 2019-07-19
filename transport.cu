@@ -129,6 +129,7 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char
 	MemStruct_Replay HostMem_Replay;
 	MemStruct_Replay DeviceMem_Replay;
 	InitMemStructs_replay(&HostMem_Replay, &DeviceMem_Replay, simulation, fiber1_position);
+	//cout << "after init replay mem\n";
 
 	int temp_SDS_detect_num[NUM_OF_DETECTOR] = { 0 }; // record temp number fo detected photon by the detector
 	float replay_reflectance[NUM_OF_DETECTOR] = { 0 }; //record reflectance of fibers
@@ -143,6 +144,8 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char
 				pathlength_weight_arr[s][j][k] = 0;
 			}
 		}
+
+		//printf("\tafter init PL arr for SDS %d\n", s);
 
 		// prepare seeds to copy to device
 		int replay_counter = 0;
@@ -159,22 +162,26 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char
 			}
 			cudaMemcpy(DeviceMem.state, HostMem.state, NUM_THREADS * sizeof(curandState), cudaMemcpyHostToDevice);
 			cudaMemcpy(DeviceMem.thread_active, HostMem.thread_active, NUM_THREADS * sizeof(unsigned int), cudaMemcpyHostToDevice);
+			//printf("\t\tafter copy seeds to device mem\n");
 
 			// init fibers
 			fiber_initialization(HostMem.f, atof(fiber1_position));
 			cudaMemcpy(DeviceMem.f, HostMem.f, NUM_THREADS * sizeof(Fibers), cudaMemcpyHostToDevice);
 			fiber_initialization_replay(HostMem_Replay.f_r);
 			cudaMemcpy(DeviceMem_Replay.f_r, HostMem_Replay.f_r, NUM_THREADS * sizeof(Fibers_Replay), cudaMemcpyHostToDevice);
+			//printf("\t\tafter init fibers\n");
 			
 			// replay
 			MCd_replay << <dimGrid, dimBlock >> > (DeviceMem, DeviceMem_Replay, s);
 			cudaThreadSynchronize(); // Wait for all threads to finish
 			cudastat = cudaGetLastError(); // Check if there was an error
 			if (cudastat)printf("Error code=%i, %s.\n", cudastat, cudaGetErrorString(cudastat));
-			
+			//printf("\t\tafter replay\n");
+
 			// process result
 			cudaMemcpy(HostMem_Replay.f_r, DeviceMem_Replay.f_r, NUM_THREADS * sizeof(Fibers_Replay), cudaMemcpyDeviceToHost);
 			calculate_reflectance_replay(HostMem_Replay.f_r, replay_reflectance, pathlength_weight_arr, temp_SDS_detect_num, total_SDS_detect_num, s + 1);
+			//printf("\t\tafter cal reflectance\n");
 		}
 		
 	}
@@ -223,22 +230,21 @@ void calculate_reflectance(Fibers* f, float *result, int* total_SDS_detect_num, 
 }
 
 //void calculate_reflectance(Fibers* f, float *result, float (*pathlength_weight_arr)[NUM_LAYER + 1][detected_temp_size], int *total_SDS_detect_num, int *temp_SDS_detect_num)
+//SDS_should_be: the detecting SDS, start from s=1 for SDS1
 void calculate_reflectance_replay(Fibers_Replay* f_r, float *result, float ***pathlength_weight_arr, int *temp_SDS_detect_num, int *total_SDS_detect_num, int SDS_should_be)
 {
 	for (int i = 0; i < NUM_THREADS; i++)
 	{
 		// record the weight, count detected photon number, and record pathlength
-		int s = f_r[i].detected_SDS_number; // the detecting SDS, start from s=1 for SDS1
-		assert(s == SDS_should_be);
-		result[s-1] += f_r[i].data;
-		pathlength_weight_arr[s - 1][temp_SDS_detect_num[s - 1]][0] = f_r[i].data;
+		result[SDS_should_be -1] += f_r[i].data;
+		pathlength_weight_arr[SDS_should_be - 1][temp_SDS_detect_num[SDS_should_be - 1]][0] = f_r[i].data;
 		for (int l = 0; l < NUM_LAYER; l++) {
-			pathlength_weight_arr[s - 1][temp_SDS_detect_num[s - 1]][l + 1] = f_r[i].layer_pathlength[l];
+			pathlength_weight_arr[SDS_should_be - 1][temp_SDS_detect_num[SDS_should_be - 1]][l + 1] = f_r[i].layer_pathlength[l];
 		}
-		pathlength_weight_arr[s - 1][temp_SDS_detect_num[s - 1]][NUM_LAYER + 1] = f_r[i].scatter_event;
+		pathlength_weight_arr[SDS_should_be - 1][temp_SDS_detect_num[SDS_should_be - 1]][NUM_LAYER + 1] = f_r[i].scatter_event;
 				
-		temp_SDS_detect_num[s - 1]++;
-		if (temp_SDS_detect_num[s - 1] >= total_SDS_detect_num[s - 1]) { // if all the photons are replayed, then break
+		temp_SDS_detect_num[SDS_should_be - 1]++;
+		if (temp_SDS_detect_num[SDS_should_be - 1] >= total_SDS_detect_num[SDS_should_be - 1]) { // if all the photons are replayed, then break
 			break;
 		}
 	}

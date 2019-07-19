@@ -62,7 +62,7 @@ void fiber_initialization(Fibers* f, float fiber1_position)
 			// for shorter muscle
 			f[i].radius[1] = collect_r;      //fiber 1   // turn 200um into 10um
 			f[i].NA[1] = NAOfDetector;
-			f[i].position[1] = 0.08;
+			f[i].position[1] = 0.07;
 			f[i].angle[1] = ANGLE*PI / 180;
 
 			f[i].radius[2] = collect_r;      //fuber 2
@@ -72,7 +72,7 @@ void fiber_initialization(Fibers* f, float fiber1_position)
 
 			f[i].radius[3] = collect_r;      //fiber 3
 			f[i].NA[3] = NAOfDetector;
-			f[i].position[3] = 0.13;
+			f[i].position[3] = 0.12;
 			f[i].angle[3] = ANGLE*PI / 180;
 
 			f[i].radius[4] = collect_r;      //fiber 4
