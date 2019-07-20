@@ -11,8 +11,6 @@ int read_mua_mus(SimulationStruct** simulations, char* input); //Wang modified
 void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char* fiber1_position); //Wang modified
 
 
-
-
 int main(int argc, char* argv[])
 {
 	SimulationStruct* simulations;

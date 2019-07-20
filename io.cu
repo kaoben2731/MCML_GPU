@@ -1,5 +1,10 @@
 #include "header.h"
 #include <string>
+#include <fstream>
+#include <sstream>
+#include "json.hpp"
+
+using json = nlohmann::json;
 
 void output_fiber(SimulationStruct* sim, float *data, char* output)
 {
@@ -26,11 +31,24 @@ void output_fiber(SimulationStruct* sim, float *data, char* output)
 }
 
 
-int read_mua_mus(SimulationStruct** simulations, char* input) //Wang modified
+int read_mua_mus(SimulationStruct** simulations, char* sim_input, char* tissue_input) //Wang modified
 {
+
+	ifstream inFile;
+	inFile.open(sim_input);
+
+	stringstream simStrStream;
+	simStrStream << inFile.rdbuf();
+	string simStr = simStrStream.str();
+
+	json sim_input_struct = json::parse(simStr);
+
 	// parameters to be modified
-	unsigned long long number_of_photons = NUMBER_PHOTONS;
-	const int n_simulations = NUMBER_SIMULATION;
+	// unsigned long long number_of_photons = NUMBER_PHOTONS;
+	// const int n_simulations = NUMBER_SIMULATION;
+
+	unsigned long long number_of_photons = sim_input_struct["NUMBER_PHOTONS"];
+	const int n_simulations = sim_input_struct["NUMBER_SIMULATION"];
 
 	int n_layers = NUM_LAYER;                                   //Zhan modified - 5 layers(scalp+skull+CSF+gray matter+white matter); // Wang modified - 4 layers(epi+dermis+sub fat+muscle); double layer, default value = 2
 	float medium_n = 1.457;								// float medium_n = 1.33;   // refractive index of medium // YU-modified
@@ -45,7 +63,7 @@ int read_mua_mus(SimulationStruct** simulations, char* input) //Wang modified
 
 	// read the file 
 	fstream myfile;
-	myfile.open(input);  //Wang modified
+	myfile.open(tissue_input);  //Wang modified
 
 	float thickness_1[n_simulations], mua_1[n_simulations], mus_1[n_simulations], n_1[n_simulations], g_1[n_simulations];
 	float thickness_2[n_simulations], mua_2[n_simulations], mus_2[n_simulations], n_2[n_simulations], g_2[n_simulations];
