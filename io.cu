@@ -1,5 +1,6 @@
 #include "header.h"
 #include <string>
+#include <iostream>
 #include <fstream>
 #include <sstream>
 #include "json.hpp"
@@ -30,10 +31,9 @@ void output_fiber(SimulationStruct* sim, float *data, char* output)
 	myfile.close();
 }
 
-
 int read_mua_mus(SimulationStruct** simulations, char* sim_input, char* tissue_input) //Wang modified
 {
-
+	// load the simulation parameters and form into json format
 	ifstream inFile;
 	inFile.open(sim_input);
 
@@ -43,25 +43,26 @@ int read_mua_mus(SimulationStruct** simulations, char* sim_input, char* tissue_i
 
 	json sim_input_struct = json::parse(simStr);
 
-	// parameters to be modified
-	// unsigned long long number_of_photons = NUMBER_PHOTONS;
-	// const int n_simulations = NUMBER_SIMULATION;
+	cout << sim_input_struct["number_photons"] << endl;
 
-	unsigned long long number_of_photons = sim_input_struct["NUMBER_PHOTONS"];
-	const int n_simulations = sim_input_struct["NUMBER_SIMULATION"];
+	// set the parameters
+	unsigned long long number_of_photons = (unsigned long long)sim_input_struct["number_photons"];
+	//const int n_simulations = sim_input_struct["number_simulation"];
+	const int n_simulations =1;
 
-	int n_layers = NUM_LAYER;                                   //Zhan modified - 5 layers(scalp+skull+CSF+gray matter+white matter); // Wang modified - 4 layers(epi+dermis+sub fat+muscle); double layer, default value = 2
-	float medium_n = 1.457;								// float medium_n = 1.33;   // refractive index of medium // YU-modified
-														//float medium_n = 1.457; //Wang-modified
+	double detector_reflectance = sim_input_struct["detector_reflectance"].get<double>();
+	int n_layers = sim_input_struct["number_layers"];
+
+	float upper_n = sim_input_struct["upper_n"];
+	float lower_n = sim_input_struct["lower_n"];
+
+
 	float lower_thickness = 10.0;						// YU-modified
-														//float tissue_n = 1.60;                            // refractive index of tissue
-														//float g_factor = 0.84;                            // anisotropic					//YU-modified
 
 	float start_weight;
-	//float upper_thickness; //YU-modified
 
 
-	// read the file 
+	// read tissue parameter
 	fstream myfile;
 	myfile.open(tissue_input);  //Wang modified
 
@@ -101,13 +102,14 @@ int read_mua_mus(SimulationStruct** simulations, char* sim_input, char* tissue_i
 	{
 		(*simulations)[i].number_of_photons = number_of_photons;
 		(*simulations)[i].n_layers = n_layers;
+		(*simulations)[i].detector_reflectance = detector_reflectance;
 
 		// Allocate memory for the layers (including one for the upper and one for the lower)
 		(*simulations)[i].layers = (LayerStruct*)malloc(sizeof(LayerStruct)*(n_layers + 2));
 		if ((*simulations)[i].layers == NULL) { perror("Failed to malloc layers.\n"); return 0; }//{printf("Failed to malloc simulations.\n");return 0;}
 
 																								 // Set upper refractive index (medium)
-		(*simulations)[i].layers[0].n = medium_n;	//(*simulations)[i].layers[0].n = medium_n[i]; //YU-modified
+		(*simulations)[i].layers[0].n = upper_n;	//(*simulations)[i].layers[0].n = medium_n[i]; //YU-modified
 
 													// Set the parameters of tissue (1st layer)
 		(*simulations)[i].layers[1].n = n_1[i];
@@ -161,7 +163,7 @@ int read_mua_mus(SimulationStruct** simulations, char* sim_input, char* tissue_i
 		*/
 
 		// Set lower refractive index (medium)
-		(*simulations)[i].layers[n_layers + 1].n = medium_n;		//(*simulations)[i].layers[n_layers+1].n = medium_n[i]; //YU-modified
+		(*simulations)[i].layers[n_layers + 1].n = lower_n;		//(*simulations)[i].layers[n_layers+1].n = medium_n[i]; //YU-modified
 
 																	//calculate start_weight
 		double n1 = (*simulations)[i].layers[0].n;
