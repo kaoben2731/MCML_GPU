@@ -157,7 +157,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="fiber.cu" />
-    <CudaCompile Include="io.cu" />
+    <CudaCompile Include="io.cpp" />
     <CudaCompile Include="main.cu" />
     <CudaCompile Include="transport.cu" />
   </ItemGroup>
