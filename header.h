@@ -10,10 +10,7 @@
 //#include <helper_cuda.h>
 #include <memory>
 
-//#include "json.hpp"
-
 using namespace std;
-//using json = nlohmann::json;
 
 // DEFINES 
 #define NUM_BLOCKS 5*16//20*16 //5*16 //dimGrid //Keep numblocks a multiple of the #MP's of the GPU (8800GT=14MP)
@@ -107,6 +104,7 @@ typedef struct
 {
 	unsigned long long number_of_photons;
 	unsigned int n_layers;
+	unsigned int num_detector;
 	float start_weight;
 	float detector_reflectance;
 	LayerStruct* layers;

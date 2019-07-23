@@ -43,12 +43,10 @@ int read_mua_mus(SimulationStruct** simulations, char* sim_input, char* tissue_i
 
 	json sim_input_struct = json::parse(simStr);
 
-	cout << sim_input_struct["number_photons"] << endl;
-
-	// set the parameters
+	// read and set the parameters from json file
 	unsigned long long number_of_photons = (unsigned long long)sim_input_struct["number_photons"];
-	//const int n_simulations = sim_input_struct["number_simulation"];
-	const int n_simulations =1;
+	const int n_simulations = sim_input_struct["number_simulation"];
+	//const int n_simulations =1;
 
 	double detector_reflectance = sim_input_struct["detector_reflectance"].get<double>();
 	int n_layers = sim_input_struct["number_layers"];
@@ -56,43 +54,53 @@ int read_mua_mus(SimulationStruct** simulations, char* sim_input, char* tissue_i
 	float upper_n = sim_input_struct["upper_n"];
 	float lower_n = sim_input_struct["lower_n"];
 
+	int num_detector = sim_input_struct["probes"]["num_SDS"];
 
-	float lower_thickness = 10.0;						// YU-modified
+
+	
+
+
+	float lower_thickness = 10.0;
 
 	float start_weight;
+
+	// init the parameter array
+	// mua for i-th simulation, j-th layer
+	float ** thickness = new float*[n_simulations];
+	float ** mua = new float*[n_simulations];
+	float ** mus = new float*[n_simulations];
+	float ** n = new float*[n_simulations];
+	float ** g = new float*[n_simulations];
+	for(int i=0;i<n_simulations;i++)
+	{
+		thickness[i] = new float[n_layers];
+		mua[i] = new float[n_layers];
+		mus[i] = new float[n_layers];
+		n[i] = new float[n_layers];
+		g[i] = new float[n_layers];
+		for (int j = 0; j < n_layers; j++) {
+			thickness[i][j] = 0;
+			mua[i][j] = 0;
+			mus[i][j] = 0;
+			n[i][j] = 0;
+			g[i][j] = 0;
+		}
+	}
 
 
 	// read tissue parameter
 	fstream myfile;
 	myfile.open(tissue_input);  //Wang modified
 
-	float thickness_1[n_simulations], mua_1[n_simulations], mus_1[n_simulations], n_1[n_simulations], g_1[n_simulations];
-	float thickness_2[n_simulations], mua_2[n_simulations], mus_2[n_simulations], n_2[n_simulations], g_2[n_simulations];
-	float thickness_3[n_simulations], mua_3[n_simulations], mus_3[n_simulations], n_3[n_simulations], g_3[n_simulations];
-	float thickness_4[n_simulations], mua_4[n_simulations], mus_4[n_simulations], n_4[n_simulations], g_4[n_simulations];
-	float thickness_5[n_simulations], mua_5[n_simulations], mus_5[n_simulations], n_5[n_simulations], g_5[n_simulations];
-	float thickness_6[n_simulations], mua_6[n_simulations], mus_6[n_simulations], n_6[n_simulations], g_6[n_simulations];
-
-	for (int i = 0; i < n_simulations; i++)
-		//myfile >> thickness_1[i] >> mua_1[i] >> mus_1[i] >> n_1[i] >> g_1[i] >> thickness_2[i] >> mua_2[i] >> mus_2[i] >> n_2[i] >> g_2[i] >> thickness_3[i] >> mua_3[i] >> mus_3[i] >> n_3[i] >> g_3[i] >> thickness_4[i] >> mua_4[i] >> mus_4[i] >> n_4[i] >> g_4[i] >> thickness_5[i] >> mua_5[i] >> mus_5[i] >> n_5[i] >> g_5[i] >> mua_6[i] >> mus_6[i] >> n_6[i] >> g_6[i];
-		myfile >> thickness_1[i] >> mua_1[i] >> mus_1[i] >> n_1[i] >> g_1[i] >> thickness_2[i] >> mua_2[i] >> mus_2[i] >> n_2[i] >> g_2[i] >> thickness_3[i] >> mua_3[i] >> mus_3[i] >> n_3[i] >> g_3[i] >> thickness_4[i] >> mua_4[i] >> mus_4[i] >> n_4[i] >> g_4[i] >> mua_5[i] >> mus_5[i] >> n_5[i] >> g_5[i];
+	for (int i = 0; i < n_simulations; i++) {
+		// for upper layers
+		for (int j = 0; j < n_layers - 1; j++) {
+			myfile >> thickness[i][j] >> mua[i][j] >> mus[i][j] >> n[i][j] >> g[i][j];
+		}
+		// for the last layer
+		myfile >> mua[i][n_layers - 1] >> mus[i][n_layers - 1] >> n[i][n_layers - 1] >> g[i][n_layers - 1];
+	}
 	myfile.close();
-
-	/*fstream myfile;
-	myfile.open ("mua_mus.txt");
-	float up_mua[n_simulations],up_mus[n_simulations],down_mua[n_simulations],down_mus[n_simulations];
-	myfile >> upper_thickness;
-	for(int i = 0; i < n_simulations; i++)
-	myfile >> up_mua[i] >> up_mus[i] >> down_mua[i] >> down_mus[i];
-	myfile.close();*/
-
-	/*fstream file;
-	file.open("index.txt");
-	float wavelength[n_simulations], tissue_n[n_simulations], medium_n[n_simulations];
-	for(int i = 0; i < n_simulations; i++)
-	file >> wavelength[i] >> tissue_n[i] >> medium_n[i];
-
-	file.close();*/
 
 	// Allocate memory for the SimulationStruct array
 	*simulations = (SimulationStruct*)malloc(sizeof(SimulationStruct)*n_simulations);
@@ -102,76 +110,49 @@ int read_mua_mus(SimulationStruct** simulations, char* sim_input, char* tissue_i
 	{
 		(*simulations)[i].number_of_photons = number_of_photons;
 		(*simulations)[i].n_layers = n_layers;
+		(*simulations)[i].num_detector = num_detector;
 		(*simulations)[i].detector_reflectance = detector_reflectance;
+
+		// read probe setting
+		(*simulations)[i].detInfo = new DetectorInfoStruct[n_detector + 1];
+
+
 
 		// Allocate memory for the layers (including one for the upper and one for the lower)
 		(*simulations)[i].layers = (LayerStruct*)malloc(sizeof(LayerStruct)*(n_layers + 2));
 		if ((*simulations)[i].layers == NULL) { perror("Failed to malloc layers.\n"); return 0; }//{printf("Failed to malloc simulations.\n");return 0;}
 
-																								 // Set upper refractive index (medium)
-		(*simulations)[i].layers[0].n = upper_n;	//(*simulations)[i].layers[0].n = medium_n[i]; //YU-modified
+		// Set upper refractive index (medium)
+		(*simulations)[i].layers[0].n = upper_n;
 
-													// Set the parameters of tissue (1st layer)
-		(*simulations)[i].layers[1].n = n_1[i];
-		(*simulations)[i].layers[1].mua = mua_1[i];
-		(*simulations)[i].layers[1].g = g_1[i];			//(*simulations)[i].layers[1].g     = g_factor; //YU-modified 
-		(*simulations)[i].layers[1].z_min = 0;
-		(*simulations)[i].layers[1].z_max = thickness_1[i];	//(*simulations)[i].layers[1].z_max = upper_thickness; //YU-modified
-		(*simulations)[i].layers[1].mutr = 1.0f / (mua_1[i] + mus_1[i]);
+		float z_min_cumulate = 0;
+		float z_max_cumulate = 0;
 
-		// Set the parameters of tissue (2nd layer)  //Wang modified
-		(*simulations)[i].layers[2].n = n_2[i];
-		(*simulations)[i].layers[2].mua = mua_2[i];
-		(*simulations)[i].layers[2].g = g_2[i];			//(*simulations)[i].layers[2].g     = g_factor; //YU-modified
-		(*simulations)[i].layers[2].z_min = thickness_1[i];		//(*simulations)[i].layers[2].z_min = upper_thickness; //YU-modified
-		(*simulations)[i].layers[2].z_max = thickness_1[i] + thickness_2[i];		//(*simulations)[i].layers[2].z_max = 1.0;            // set as infinity
-		(*simulations)[i].layers[2].mutr = 1.0f / (mua_1[i] + mus_2[i]);
-
-		// Set the parameters of tissue (3rd layer)  //Wang modified
-		(*simulations)[i].layers[3].n = n_3[i];
-		(*simulations)[i].layers[3].mua = mua_3[i];
-		(*simulations)[i].layers[3].g = g_3[i];
-		(*simulations)[i].layers[3].z_min = thickness_1[i] + thickness_2[i];
-		(*simulations)[i].layers[3].z_max = thickness_1[i] + thickness_2[i] + thickness_3[i];
-		(*simulations)[i].layers[3].mutr = 1.0f / (mua_3[i] + mus_3[i]);
-
-		// Set the parameters of tissue (4th layer)  //Zhan modified
-		(*simulations)[i].layers[4].n = n_4[i];
-		(*simulations)[i].layers[4].mua = mua_4[i];
-		(*simulations)[i].layers[4].g = g_4[i];
-		(*simulations)[i].layers[4].z_min = thickness_1[i] + thickness_2[i] + thickness_3[i];
-		(*simulations)[i].layers[4].z_max = thickness_1[i] + thickness_2[i] + thickness_3[i] + thickness_4[i];
-		(*simulations)[i].layers[4].mutr = 1.0f / (mua_4[i] + mus_4[i]);
-
-		// Set the parameters of tissue (5th layer)  //Zhan modified
-		(*simulations)[i].layers[5].n = n_5[i];
-		(*simulations)[i].layers[5].mua = mua_5[i];
-		(*simulations)[i].layers[5].g = g_5[i];
-		(*simulations)[i].layers[5].z_min = thickness_1[i] + thickness_2[i] + thickness_3[i] + thickness_4[i];
-		//(*simulations)[i].layers[5].z_max = thickness_1[i] + thickness_2[i] + thickness_3[i] + thickness_4[i] + thickness_5[i];
-		(*simulations)[i].layers[5].z_max = lower_thickness;
-		(*simulations)[i].layers[5].mutr = 1.0f / (mua_5[i] + mus_5[i]);
-
-		/*
-		// Set the parameters of tissue (6th layer)  //Zhan modified
-		(*simulations)[i].layers[6].n = n_6[i];
-		(*simulations)[i].layers[6].mua = mua_6[i];
-		(*simulations)[i].layers[6].g = g_6[i];
-		(*simulations)[i].layers[6].z_min = thickness_1[i] + thickness_2[i] + thickness_3[i] + thickness_4[i] + thickness_5[i];
-		(*simulations)[i].layers[6].z_max = lower_thickness;
-		(*simulations)[i].layers[6].mutr = 1.0f / (mua_6[i] + mus_6[i]);
-		*/
+		// for setting layers
+		for (int l = 1; l <= n_layers; l++) {
+			z_max_cumulate += thickness[i][l];
+			(*simulations)[i].layers[l].n = n[i][l];
+			(*simulations)[i].layers[l].mua = mua[i][l];
+			(*simulations)[i].layers[l].g = g[i][l];
+			(*simulations)[i].layers[l].z_min = z_min_cumulate;
+			(*simulations)[i].layers[l].z_max = z_max_cumulate;
+			(*simulations)[i].layers[l].mutr = 1.0f / (mua[i][l] + mus[i][l]);
+			z_min_cumulate += thickness[i][l];
+		}
+		// set the depth of the lower layer
+		if ((*simulations)[i].layers[n_layers].z_max < lower_thickness) {
+			(*simulations)[i].layers[n_layers].z_max = lower_thickness;
+		}
 
 		// Set lower refractive index (medium)
-		(*simulations)[i].layers[n_layers + 1].n = lower_n;		//(*simulations)[i].layers[n_layers+1].n = medium_n[i]; //YU-modified
+		(*simulations)[i].layers[n_layers + 1].n = lower_n;
 
-																	//calculate start_weight
+		//calculate start_weight
 		double n1 = (*simulations)[i].layers[0].n;
 		double n2 = (*simulations)[i].layers[1].n;
 		double r = (n1 - n2) / (n1 + n2);
 		r = r*r;
 		start_weight = (unsigned int)((double)0xffffffff * (1 - r));
-		//start_weight = 1-r;  
 		//printf("Start weight=%u\n",start_weight);
 		(*simulations)[i].start_weight = start_weight;
 	}
