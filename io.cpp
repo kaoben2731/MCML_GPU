@@ -267,16 +267,20 @@ void output_SDS_pathlength(SimulationStruct* simulation, float ***pathlength_wei
 
 void output_sim_summary(SimulationStruct* simulation, SummaryStruct sumStruc)
 {
-	ofstream myfile;
-	myfile.open("summary.txt", ios::app);
-
 	double scale1 = (double)0xFFFFFFFF * (double)sumStruc.number_of_photons;
-	myfile << "Finish simulation in " << (double)(sumStruc.time2 - sumStruc.time1) / CLOCKS_PER_SEC << " secs." << endl;
-	myfile << "Finish replay in " << (double)(sumStruc.time3 - sumStruc.time2) / CLOCKS_PER_SEC << " secs." << endl;
-	myfile << "Photon weight should be divided by " << scale1 << endl << endl << "Detected photon number:" << endl;
-	for (int i = 0; i < simulation->num_detector; i++) {
-		myfile << "SDS " << i << ":\t" << sumStruc.total_SDS_detect_num[i] << endl;
+
+	ofstream myfile;
+	myfile.open("summary.json", ios::app);
+	myfile << "{\n";
+	myfile << "\"sim_time\": " << (double)(sumStruc.time2 - sumStruc.time1) / CLOCKS_PER_SEC << ",\n";
+	myfile << "\"replay_time\": " << (double)(sumStruc.time3 - sumStruc.time2) / CLOCKS_PER_SEC << ",\n";
+	myfile << "\"each_photon_weight\": " << scale1 << ",\n";
+	myfile << "\"SDS_detected_number\": [";
+	for (int d = 0; d < simulation->num_detector-1; d++) {
+		myfile << " " << sumStruc.total_SDS_detect_num[d] << " ,";
 	}
+	myfile << " " << sumStruc.total_SDS_detect_num[simulation->num_detector - 1] << " ]\n";
+	myfile << "}";
 	myfile.close();
 }
 
