@@ -48,17 +48,13 @@ int read_mua_mus(SimulationStruct** simulations, char* sim_input, char* tissue_i
 	const int n_simulations = sim_input_struct["number_simulation"];
 	//const int n_simulations =1;
 
-	double detector_reflectance = sim_input_struct["detector_reflectance"].get<double>();
+	double detector_reflectance = sim_input_struct["detector_reflectance"];
 	int n_layers = sim_input_struct["number_layers"];
 
 	float upper_n = sim_input_struct["upper_n"];
 	float lower_n = sim_input_struct["lower_n"];
 
 	int num_detector = sim_input_struct["probes"]["num_SDS"];
-
-
-	
-
 
 	float lower_thickness = 10.0;
 
@@ -94,11 +90,27 @@ int read_mua_mus(SimulationStruct** simulations, char* sim_input, char* tissue_i
 
 	for (int i = 0; i < n_simulations; i++) {
 		// for upper layers
-		for (int j = 0; j < n_layers - 1; j++) {
+		int j = 0; // layer index
+		while ( j < n_layers - 1) {
 			myfile >> thickness[i][j] >> mua[i][j] >> mus[i][j] >> n[i][j] >> g[i][j];
+			j++;
 		}
 		// for the last layer
-		myfile >> mua[i][n_layers - 1] >> mus[i][n_layers - 1] >> n[i][n_layers - 1] >> g[i][n_layers - 1];
+		myfile >> mua[i][j] >> mus[i][j] >> n[i][j] >> g[i][j];
+		
+		// check for input correctness
+		if (mus[i][j] <= 0) {
+			cout << "Mus for simulation " << i << " layer " << j << " Error with value" << mus[i][j] << "!";
+			return 0;
+		}
+		if (n[i][j] <= 1) {
+			cout << "n for simulation " << i << " layer " << j << " Error with value" << n[i][j] << "!";
+			return 0;
+		}
+		if (g[i][j] > 1) {
+			cout << "g for simulation " << i << " layer " << j << " Error with value" << g[i][j] << "!";
+			return 0;
+		}
 	}
 	myfile.close();
 
@@ -114,9 +126,16 @@ int read_mua_mus(SimulationStruct** simulations, char* sim_input, char* tissue_i
 		(*simulations)[i].detector_reflectance = detector_reflectance;
 
 		// read probe setting
-		(*simulations)[i].detInfo = new DetectorInfoStruct[n_detector + 1];
-
-
+		(*simulations)[i].detInfo = new DetectorInfoStruct[num_detector + 1];
+		// for source
+		(*simulations)[i].detInfo[0].NA = sim_input_struct["probes"]["source"]["NA"];
+		(*simulations)[i].detInfo[0].raduis = sim_input_struct["probes"]["source"]["radius"];
+		// for detector
+		for (int d = 0; d < num_detector; d++) {
+			(*simulations)[i].detInfo[d + 1].NA = sim_input_struct["probes"]["detectors"][d]["NA"];
+			(*simulations)[i].detInfo[d + 1].raduis = sim_input_struct["probes"]["detectors"][d]["radius"];
+			(*simulations)[i].detInfo[d + 1].position = sim_input_struct["probes"]["detectors"][d]["pos"];
+		}
 
 		// Allocate memory for the layers (including one for the upper and one for the lower)
 		(*simulations)[i].layers = (LayerStruct*)malloc(sizeof(LayerStruct)*(n_layers + 2));
@@ -156,6 +175,22 @@ int read_mua_mus(SimulationStruct** simulations, char* sim_input, char* tissue_i
 		//printf("Start weight=%u\n",start_weight);
 		(*simulations)[i].start_weight = start_weight;
 	}
+
+	// free the memory
+	for (int i = 0; i<n_simulations; i++)
+	{
+		delete[] thickness[i];
+		delete[] mua[i];
+		delete[] mus[i];
+		delete[] n[i];
+		delete[] g[i];
+	}
+	delete[] thickness;
+	delete[] mua;
+	delete[] mus;
+	delete[] n;
+	delete[] g;
+
 	return n_simulations;
 }
 
