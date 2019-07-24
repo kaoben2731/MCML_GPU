@@ -30,14 +30,13 @@ using namespace std;
 
 
 #define NUM_LAYER 5
-
+#define PRESET_NUM_LAYER 10
 #define NUMSTEPS_GPU       50000
 #define PI                 3.141592654f
 #define RPI                0.318309886f
-#define MAX_LAYERS         100
 #define STR_LEN            200
 #define NORMAL             0                    // 1: normal, 0: oblique
-#define NUM_OF_DETECTOR    (NORMAL ? 6:6) //(NORMAL ? 5:10)		//(NORMAL ? 4:9)       // normal: 4 fibers, oblique: 9 fibers
+#define PRESET_NUM_DETECTOR    (NORMAL ? 15:15) //(NORMAL ? 5:10)		//(NORMAL ? 4:9)       // normal: 4 fibers, oblique: 9 fibers
 //#define ANGLE              (NORMAL ? 0:45)      // normal: 0 degree, oblique: 45 degree  
 #define ANGLE              (NORMAL ? 0:0)      // normal: 0 degree, oblique: 0 degree  by CY
 
@@ -113,10 +112,10 @@ typedef struct
 
 typedef struct
 {
-	float* radius;
-	float* NA;
-	float* position;
-	float* angle;
+	float radius[PRESET_NUM_DETECTOR];
+	float NA[PRESET_NUM_DETECTOR];
+	float position[PRESET_NUM_DETECTOR];
+	float angle[PRESET_NUM_DETECTOR];
 	int detected_photon_counter; // record how many photon had been detected by this fiber in one iteration, should not exceed SDS_detected_temp_size
 	float data[SDS_detected_temp_size]; // the photon weight detected by this probe
 	int detected_SDS_number[SDS_detected_temp_size]; // record which SDS detected the photon
@@ -127,7 +126,7 @@ typedef struct
 {
 	bool have_detected;
 	float data; // the photon weight detected by this probe
-	float* layer_pathlength; // record the pathlength in each layer for detected photon
+	float layer_pathlength[PRESET_NUM_LAYER]; // record the pathlength in each layer for detected photon
 	int scatter_event; // record howmany time the photon had been scattered
 	int detected_SDS_number; // record which SDS detected the photon
 }Fibers_Replay;
@@ -159,12 +158,13 @@ typedef struct
 typedef struct
 {
 	clock_t time1, time2, time3;
-	int total_SDS_detect_num[NUM_OF_DETECTOR];
+	int* total_SDS_detect_num;
 	unsigned long long number_of_photons;
 }SummaryStruct;
 
 
 __device__ __constant__ unsigned long long num_photons_dc[1];
 __device__ __constant__ unsigned int n_layers_dc[1];
+__device__ __constant__ unsigned int num_detector_dc[1];
 __device__ __constant__ float start_weight_dc[1];
-__device__ __constant__ LayerStruct layers_dc[MAX_LAYERS];
+__device__ __constant__ LayerStruct layers_dc[PRESET_NUM_LAYER + 2];

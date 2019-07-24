@@ -11,10 +11,12 @@ void fiber_initialization(Fibers* f, SimulationStruct* sim)
 
 		f[i].detected_photon_counter = 0;
 		
-		f[i].radius = new float[sim->num_detector + 1];
-		f[i].NA = new float[sim->num_detector + 1];
-		f[i].angle = new float[sim->num_detector + 1];
-		f[i].position = new float[sim->num_detector + 1];
+		/*for (int d = 0; d < PRESET_NUM_DETECTOR; d++) {
+			f[i].radius[d] = 0;
+			f[i].NA[d] = 0;
+			f[i].angle[d] = 0;
+			f[i].position[d] = 0;
+		}*/
 
 		for (int d = 0; d <= sim->num_detector; d++) {
 			f[i].radius[d] = sim->detInfo[d].raduis;
@@ -205,7 +207,6 @@ void fiber_initialization_replay(Fibers_Replay* f_r, SimulationStruct* sim)
 		f_r[i].data = 0;
 		f_r[i].scatter_event = 0;
 		f_r[i].detected_SDS_number = 0;
-		f_r[i].layer_pathlength = new float[sim->num_layers];
 		for (int l = 0; l < sim->num_layers; l++)
 		{
 			f_r[i].layer_pathlength[l] = 0;

@@ -28,14 +28,14 @@ __device__ unsigned int PhotonSurvive(PhotonStruct*, curandState* state);
 __device__ void AtomicAddULL(unsigned long long* address, unsigned int add);
 __device__ bool detect(PhotonStruct* p, Fibers* f);
 __device__ int binarySearch(float *data, float value);
-void fiber_initialization(Fibers* f, float fiber1_position); //Wang modified
+void fiber_initialization(Fibers* f, SimulationStruct* sim);
 void fiber_initialization_replay(Fibers_Replay* f_r, SimulationStruct* sim);
 void output_fiber(SimulationStruct* sim, float* reflectance, char* output); //Wang modified
 void output_SDS_pathlength(SimulationStruct* simulation, float ***pathlength_weight_arr, int *temp_SDS_detect_num, int SDS_to_output);
-void output_sim_summary(SimulationStruct* simulation, SummaryStruct sumStruc)
+void output_sim_summary(SimulationStruct* simulation, SummaryStruct sumStruc);
 //void calculate_reflectance(Fibers* f, float *result, float (*pathlength_weight_arr)[NUM_LAYER + 1][detected_temp_size], int *total_SDS_detect_num, int *temp_SDS_detect_num);
 void calculate_reflectance(Fibers* f, float *result, int* total_SDS_detect_num, vector<vector<curandState>>& detected_state_arr);
-void calculate_reflectance_replay(Fibers_Replay* f_r, float *result, float ***pathlength_weight_arr, int *temp_SDS_detect_num, int *total_SDS_detect_num, int SDS_should_be);
+void calculate_reflectance_replay(Fibers_Replay* f_r, float *result, float ***pathlength_weight_arr, int *temp_SDS_detect_num, int *total_SDS_detect_num, int SDS_should_be, int num_layers);
 void input_g(int index, G_Array *g);
 int InitG(G_Array* HostG, G_Array* DeviceG, int index);
 void FreeG(G_Array* HostG, G_Array* DeviceG);
@@ -91,7 +91,7 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char
 	while (threads_active_total>0)
 	{
 		i++;
-		fiber_initialization(HostMem.f, atof(fiber1_position)); //Wang modified
+		fiber_initialization(HostMem.f, simulation); //Wang modified
 																//printf("Size of Fibers\t%d\n",sizeof(Fibers));
 		cudaMemcpy(DeviceMem.f, HostMem.f, NUM_THREADS * sizeof(Fibers), cudaMemcpyHostToDevice); //malloc sizeof(FIbers) equals to 13*(5*4)
 
@@ -135,7 +135,8 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char
 
 	int *temp_SDS_detect_num = new int[simulation->num_detector]; // record temp number fo detected photon by the detector
 	float *replay_reflectance = new float[simulation->num_detector]; //record reflectance of fibers
-	//float pathlength_weight_arr[NUM_OF_DETECTOR][detected_size][NUM_LAYER + 2]
+	sumStruc.total_SDS_detect_num = new int[simulation->num_detector];
+	//float pathlength_weight_arr[PRESET_NUM_DETECTOR][detected_size][NUM_LAYER + 2]
 	float*** pathlength_weight_arr = new float**[simulation->num_detector]; // record the pathlength and weight for each photon, in each layer, and for each detector, also scatter times
 	for (int s = 0; s < simulation->num_detector; s++) {
 		temp_SDS_detect_num[s] = 0;
@@ -144,8 +145,8 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char
 		// init the PL array for this detector
 		pathlength_weight_arr[s] = new float*[total_SDS_detect_num[s]]; // record the pathlength and weight for each photon, in each layer, and for each detector, also scatter times
 		for (int j = 0; j < total_SDS_detect_num[s]; j++) {
-			pathlength_weight_arr[s][j] = new float[NUM_LAYER + 2];
-			for (int k = 0; k < NUM_LAYER + 2; k++) {
+			pathlength_weight_arr[s][j] = new float[simulation->num_layers + 2];
+			for (int k = 0; k < simulation->num_layers + 2; k++) {
 				pathlength_weight_arr[s][j][k] = 0;
 			}
 		}
@@ -170,9 +171,9 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char
 			//printf("\t\tafter copy seeds to device mem\n");
 
 			// init fibers
-			fiber_initialization(HostMem.f, atof(fiber1_position));
+			fiber_initialization(HostMem.f, simulation);
 			cudaMemcpy(DeviceMem.f, HostMem.f, NUM_THREADS * sizeof(Fibers), cudaMemcpyHostToDevice);
-			fiber_initialization_replay(HostMem_Replay.f_r);
+			fiber_initialization_replay(HostMem_Replay.f_r, simulation);
 			cudaMemcpy(DeviceMem_Replay.f_r, HostMem_Replay.f_r, NUM_THREADS * sizeof(Fibers_Replay), cudaMemcpyHostToDevice);
 			//printf("\t\tafter init fibers\n");
 			
@@ -185,13 +186,13 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char
 
 			// process result
 			cudaMemcpy(HostMem_Replay.f_r, DeviceMem_Replay.f_r, NUM_THREADS * sizeof(Fibers_Replay), cudaMemcpyDeviceToHost);
-			calculate_reflectance_replay(HostMem_Replay.f_r, replay_reflectance, pathlength_weight_arr, temp_SDS_detect_num, total_SDS_detect_num, s + 1);
+			calculate_reflectance_replay(HostMem_Replay.f_r, replay_reflectance, pathlength_weight_arr, temp_SDS_detect_num, total_SDS_detect_num, s + 1, simulation->num_layers);
 			//printf("\t\tafter cal reflectance\n");
 		}
 		
 	}
 	
-	output_SDS_pathlength(pathlength_weight_arr, temp_SDS_detect_num, 0);
+	output_SDS_pathlength(simulation, pathlength_weight_arr, temp_SDS_detect_num, 0);
 	output_fiber(simulation, replay_reflectance, output);
 
 	// copy the A_rz and A0_z back to host
@@ -203,7 +204,7 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char
 
 	sumStruc.time3 = clock();
 	printf("finish replay, cost %.2f secs\n", (double)(sumStruc.time3 - sumStruc.time2) / CLOCKS_PER_SEC);
-	output_sim_summary(sumStruc);
+	output_sim_summary(simulation, sumStruc);
 
 	//cout << "#" << index << " Simulation done!\n";
 
@@ -212,7 +213,7 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char
 	FreeMemStructs_replay(&HostMem_Replay, &DeviceMem_Replay);
 
 	for (int i = 0; i < simulation->num_detector; i++) {
-		for (int j = 0; j < NUM_LAYER + 1; j++) {
+		for (int j = 0; j < total_SDS_detect_num[i]; j++) {
 			delete[] pathlength_weight_arr[i][j];
 		}
 		delete[] pathlength_weight_arr[i];
@@ -240,17 +241,17 @@ void calculate_reflectance(Fibers* f, float *result, int* total_SDS_detect_num, 
 
 //void calculate_reflectance(Fibers* f, float *result, float (*pathlength_weight_arr)[NUM_LAYER + 1][detected_temp_size], int *total_SDS_detect_num, int *temp_SDS_detect_num)
 //SDS_should_be: the detecting SDS, start from s=1 for SDS1
-void calculate_reflectance_replay(Fibers_Replay* f_r, float *result, float ***pathlength_weight_arr, int *temp_SDS_detect_num, int *total_SDS_detect_num, int SDS_should_be)
+void calculate_reflectance_replay(Fibers_Replay* f_r, float *result, float ***pathlength_weight_arr, int *temp_SDS_detect_num, int *total_SDS_detect_num, int SDS_should_be, int num_layers)
 {
 	for (int i = 0; i < NUM_THREADS; i++)
 	{
 		// record the weight, count detected photon number, and record pathlength
 		result[SDS_should_be -1] += f_r[i].data;
 		pathlength_weight_arr[SDS_should_be - 1][temp_SDS_detect_num[SDS_should_be - 1]][0] = f_r[i].data;
-		for (int l = 0; l < NUM_LAYER; l++) {
+		for (int l = 0; l < num_layers; l++) {
 			pathlength_weight_arr[SDS_should_be - 1][temp_SDS_detect_num[SDS_should_be - 1]][l + 1] = f_r[i].layer_pathlength[l];
 		}
-		pathlength_weight_arr[SDS_should_be - 1][temp_SDS_detect_num[SDS_should_be - 1]][NUM_LAYER + 1] = f_r[i].scatter_event;
+		pathlength_weight_arr[SDS_should_be - 1][temp_SDS_detect_num[SDS_should_be - 1]][num_layers + 1] = f_r[i].scatter_event;
 				
 		temp_SDS_detect_num[SDS_should_be - 1]++;
 		if (temp_SDS_detect_num[SDS_should_be - 1] >= total_SDS_detect_num[SDS_should_be - 1]) { // if all the photons are replayed, then break
@@ -748,7 +749,7 @@ __device__ bool detect(PhotonStruct* p, Fibers* f)
 			distance = sqrt(p->x * p->x + p->y * p->y);
 			//all circular
 			/*
-			for (int i = 1; i <= NUM_OF_DETECTOR; i++)
+			for (int i = 1; i <= PRESET_NUM_DETECTOR; i++)
 			{
 			if ((distance > (f->position[i] - f->radius[i])) && (distance <= (f->position[i] + f->radius[i])))
 			{
@@ -758,7 +759,7 @@ __device__ bool detect(PhotonStruct* p, Fibers* f)
 			}
 			*/
 			//fiber only
-			for (int i = 1; i <= NUM_OF_DETECTOR; i++)
+			for (int i = 1; i <= *num_detector_dc; i++)
 			{
 				if ((distance >= (f->position[i] - f->radius[i])) && (distance <= (f->position[i] + f->radius[i])))
 				{
@@ -792,14 +793,17 @@ __device__ bool detect(PhotonStruct* p, Fibers* f)
 
 int InitDCMem(SimulationStruct* sim)
 {
-	// Copy num_photons_dc to constant device memory
-	cudaMemcpyToSymbol(n_layers_dc, &(sim->n_layers), sizeof(unsigned int));
+	// Copy n_layers_dc to constant device memory
+	cudaMemcpyToSymbol(n_layers_dc, &(sim->num_layers), sizeof(unsigned int));
+
+	// Copy num_detector_dc to constant device memory
+	cudaMemcpyToSymbol(num_detector_dc, &(sim->num_detector), sizeof(unsigned int));
 
 	// Copy start_weight_dc to constant device memory
 	cudaMemcpyToSymbol(start_weight_dc, &(sim->start_weight), sizeof(unsigned int));
 
 	// Copy layer data to constant device memory
-	cudaMemcpyToSymbol(layers_dc, sim->layers, (sim->n_layers + 2) * sizeof(LayerStruct));
+	cudaMemcpyToSymbol(layers_dc, sim->layers, (sim->num_layers + 2) * sizeof(LayerStruct));
 
 	// Copy num_photons_dc to constant device memory
 	cudaMemcpyToSymbol(num_photons_dc, &(sim->number_of_photons), sizeof(unsigned long long));
@@ -831,7 +835,7 @@ int InitMemStructs(MemStruct* HostMem, MemStruct* DeviceMem, SimulationStruct* s
 	//Allocate and initialize fiber f on the device and host
 	HostMem->f = (Fibers*)malloc(NUM_THREADS * sizeof(Fibers));
 	cudaMalloc((void**)&DeviceMem->f, NUM_THREADS * sizeof(Fibers));
-	fiber_initialization(HostMem->f, atof(fiber1_position)); //Wang modified
+	fiber_initialization(HostMem->f, sim); //Wang modified
 	cudaMemcpy(DeviceMem->f, HostMem->f, NUM_THREADS * sizeof(Fibers), cudaMemcpyHostToDevice);
 
 	//Allocate states on the device and host
@@ -846,12 +850,12 @@ int InitMemStructs_replay(MemStruct_Replay* HostMem, MemStruct_Replay* DeviceMem
 	//Allocate and initialize fiber_Replay f_r on the device and host
 	HostMem->f_r = (Fibers_Replay*)malloc(NUM_THREADS * sizeof(Fibers_Replay));
 	cudaMalloc((void**)&DeviceMem->f_r, NUM_THREADS * sizeof(Fibers_Replay));
-	fiber_initialization_replay(HostMem->f_r);
+	fiber_initialization_replay(HostMem->f_r, sim);
 	cudaMemcpy(DeviceMem->f_r, HostMem->f_r, NUM_THREADS * sizeof(Fibers_Replay), cudaMemcpyHostToDevice);
 
 	int rz_size, z0_size;
-	rz_size = NUM_OF_DETECTOR*record_nr*record_nz;
-	z0_size = NUM_OF_DETECTOR*record_nz;
+	rz_size = sim->num_detector*record_nr*record_nz;
+	z0_size = sim->num_detector*record_nz;
 
 	// Allocate A_rz on host and device
 	HostMem->A_rz = (unsigned long long*) malloc(rz_size * sizeof(unsigned long long));

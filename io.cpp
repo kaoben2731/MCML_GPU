@@ -15,14 +15,14 @@ void output_fiber(SimulationStruct* sim, float *data, char* output)
 	double scale1 = (double)0xFFFFFFFF * (double)sim->number_of_photons;
 	if (NORMAL)
 	{
-		for (int i = 0; i < NUM_OF_DETECTOR; i++)
+		for (int i = 0; i < sim->num_detector; i++)
 		{
 			myfile << double(data[i] / scale1) << "\t";
 		}
 	}
 	else
 	{
-		for (int i = 0; i < NUM_OF_DETECTOR; i++)
+		for (int i = 0; i < sim->num_detector; i++)
 		{
 			myfile << double(data[i] / scale1) << " ";
 		}
@@ -50,11 +50,19 @@ int read_mua_mus(SimulationStruct** simulations, char* sim_input, char* tissue_i
 
 	double detector_reflectance = sim_input_struct["detector_reflectance"];
 	int n_layers = sim_input_struct["number_layers"];
+	if (n_layers > PRESET_NUM_LAYER) {
+		cout << "Number of layer is too large!\nThis program only allow number lower than " << PRESET_NUM_LAYER << " !\n";
+		return 0;
+	}
 
 	float upper_n = sim_input_struct["upper_n"];
 	float lower_n = sim_input_struct["lower_n"];
 
 	int num_detector = sim_input_struct["probes"]["num_SDS"];
+	if (num_detector > PRESET_NUM_DETECTOR) {
+		cout << "Number of SDS is too large!\nThis program only allow number lower than " << PRESET_NUM_DETECTOR << " !\n";
+		return 0;
+	}
 
 	float lower_thickness = 10.0;
 
@@ -83,7 +91,6 @@ int read_mua_mus(SimulationStruct** simulations, char* sim_input, char* tissue_i
 		}
 	}
 
-
 	// read tissue parameter
 	fstream myfile;
 	myfile.open(tissue_input);  //Wang modified
@@ -100,15 +107,15 @@ int read_mua_mus(SimulationStruct** simulations, char* sim_input, char* tissue_i
 		
 		// check for input correctness
 		if (mus[i][j] <= 0) {
-			cout << "Mus for simulation " << i << " layer " << j << " Error with value" << mus[i][j] << "!";
+			cout << "Mus for simulation " << i << " layer " << j << " Error with value " << mus[i][j] << " !\n";
 			return 0;
 		}
 		if (n[i][j] <= 1) {
-			cout << "n for simulation " << i << " layer " << j << " Error with value" << n[i][j] << "!";
+			cout << "n for simulation " << i << " layer " << j << " Error with value " << n[i][j] << " !\n";
 			return 0;
 		}
 		if (g[i][j] > 1) {
-			cout << "g for simulation " << i << " layer " << j << " Error with value" << g[i][j] << "!";
+			cout << "g for simulation " << i << " layer " << j << " Error with value " << g[i][j] << " !\n";
 			return 0;
 		}
 	}
@@ -218,12 +225,12 @@ void generate_filename(char *filename, char* prefix,int SDS_number)
 // SDS_to_output: exact number of SDS to output, 1 for SDS1 , 0 for output all SDS
 void output_SDS_pathlength(SimulationStruct* simulation, float ***pathlength_weight_arr, int *temp_SDS_detect_num, int SDS_to_output)
 {
-	if (SDS_to_output != 0) {
+	/*if (SDS_to_output != 0) {
 		cout << "SDS_to_output= " << SDS_to_output << endl;
 	}
 	else {
 		cout << "SDS_to_output= all" << endl;
-	}
+	}*/
 
 	int start_SDS_index, end_SDS_index;
 	if (SDS_to_output==0){
