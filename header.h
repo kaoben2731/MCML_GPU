@@ -55,7 +55,7 @@ using namespace std;
 #define CHANCE 0.1f
 
 #define detected_temp_size 7000 //number of photon should be detected
-#define SDS_detected_temp_size 10
+#define SDS_detected_temp_size 20
 #define max_scatter_time 10000 // the max times a photon can scatter, if larger than this value, the weight will be too small, and don't need to continue simulate it
 
 // define the absorbance array
@@ -103,7 +103,7 @@ typedef struct
 typedef struct
 {
 	unsigned long long number_of_photons;
-	unsigned int n_layers;
+	unsigned int num_layers;
 	unsigned int num_detector;
 	float start_weight;
 	float detector_reflectance;
@@ -113,10 +113,10 @@ typedef struct
 
 typedef struct
 {
-	float radius[NUM_OF_DETECTOR + 1];
-	float NA[NUM_OF_DETECTOR + 1];
-	float position[NUM_OF_DETECTOR + 1];
-	float angle[NUM_OF_DETECTOR + 1];
+	float* radius;
+	float* NA;
+	float* position;
+	float* angle;
 	int detected_photon_counter; // record how many photon had been detected by this fiber in one iteration, should not exceed SDS_detected_temp_size
 	float data[SDS_detected_temp_size]; // the photon weight detected by this probe
 	int detected_SDS_number[SDS_detected_temp_size]; // record which SDS detected the photon
@@ -127,7 +127,7 @@ typedef struct
 {
 	bool have_detected;
 	float data; // the photon weight detected by this probe
-	float layer_pathlength[NUM_LAYER]; // record the pathlength in each layer for detected photon
+	float* layer_pathlength; // record the pathlength in each layer for detected photon
 	int scatter_event; // record howmany time the photon had been scattered
 	int detected_SDS_number; // record which SDS detected the photon
 }Fibers_Replay;

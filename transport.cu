@@ -14,7 +14,6 @@ void FreeMemStructs_replay(MemStruct_Replay* HostMem, MemStruct_Replay* DeviceMe
 void FreeSimulationStruct(SimulationStruct* sim, int n_simulations);
 __global__ void MCd(MemStruct DeviceMem, unsigned long long seed);
 __global__ void MCd_replay(MemStruct DeviceMem, MemStruct_Replay DeviceMem_Replay, int detected_SDS);
-__global__ void LaunchPhoton_Global(MemStruct DeviceMem);
 int InitDCMem(SimulationStruct* sim);
 int Write_Simulation_Results(MemStruct* HostMem, SimulationStruct* sim, clock_t simulation_time);
 int read_simulation_data(char* filename, SimulationStruct** simulations, int ignoreAdetection);
@@ -30,10 +29,10 @@ __device__ void AtomicAddULL(unsigned long long* address, unsigned int add);
 __device__ bool detect(PhotonStruct* p, Fibers* f);
 __device__ int binarySearch(float *data, float value);
 void fiber_initialization(Fibers* f, float fiber1_position); //Wang modified
-void fiber_initialization_replay(Fibers_Replay* f_r);
+void fiber_initialization_replay(Fibers_Replay* f_r, SimulationStruct* sim);
 void output_fiber(SimulationStruct* sim, float* reflectance, char* output); //Wang modified
-void output_SDS_pathlength(float ***pathlength_weight_arr, int *temp_SDS_detect_num, int SDS_to_output);
-void output_sim_summary(SummaryStruct sumStruc);
+void output_SDS_pathlength(SimulationStruct* simulation, float ***pathlength_weight_arr, int *temp_SDS_detect_num, int SDS_to_output);
+void output_sim_summary(SimulationStruct* simulation, SummaryStruct sumStruc)
 //void calculate_reflectance(Fibers* f, float *result, float (*pathlength_weight_arr)[NUM_LAYER + 1][detected_temp_size], int *total_SDS_detect_num, int *temp_SDS_detect_num);
 void calculate_reflectance(Fibers* f, float *result, int* total_SDS_detect_num, vector<vector<curandState>>& detected_state_arr);
 void calculate_reflectance_replay(Fibers_Replay* f_r, float *result, float ***pathlength_weight_arr, int *temp_SDS_detect_num, int *total_SDS_detect_num, int SDS_should_be);

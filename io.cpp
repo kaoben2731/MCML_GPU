@@ -121,7 +121,7 @@ int read_mua_mus(SimulationStruct** simulations, char* sim_input, char* tissue_i
 	for (int i = 0; i < n_simulations; i++)
 	{
 		(*simulations)[i].number_of_photons = number_of_photons;
-		(*simulations)[i].n_layers = n_layers;
+		(*simulations)[i].num_layers = n_layers;
 		(*simulations)[i].num_detector = num_detector;
 		(*simulations)[i].detector_reflectance = detector_reflectance;
 
@@ -216,7 +216,7 @@ void generate_filename(char *filename, char* prefix,int SDS_number)
 }
 
 // SDS_to_output: exact number of SDS to output, 1 for SDS1 , 0 for output all SDS
-void output_SDS_pathlength(float ***pathlength_weight_arr, int *temp_SDS_detect_num, int SDS_to_output)
+void output_SDS_pathlength(SimulationStruct* simulation, float ***pathlength_weight_arr, int *temp_SDS_detect_num, int SDS_to_output)
 {
 	if (SDS_to_output != 0) {
 		cout << "SDS_to_output= " << SDS_to_output << endl;
@@ -228,7 +228,7 @@ void output_SDS_pathlength(float ***pathlength_weight_arr, int *temp_SDS_detect_
 	int start_SDS_index, end_SDS_index;
 	if (SDS_to_output==0){
 		start_SDS_index = 0;
-		end_SDS_index = NUM_OF_DETECTOR;
+		end_SDS_index = simulation->num_detector;
 	}
 	else {
 		start_SDS_index = SDS_to_output - 1;
@@ -244,7 +244,7 @@ void output_SDS_pathlength(float ***pathlength_weight_arr, int *temp_SDS_detect_
 		ofstream myfile;
 		myfile.open(output, ios::app);
 		for (int i = 0; i < temp_SDS_detect_num[s]; i++) {
-			for (int j = 0; j <= NUM_LAYER + 1; j++) {
+			for (int j = 0; j <= simulation->num_layers + 1; j++) {
 				myfile << pathlength_weight_arr[s][i][j] << '\t';
 			}
 			myfile << endl;
@@ -254,7 +254,7 @@ void output_SDS_pathlength(float ***pathlength_weight_arr, int *temp_SDS_detect_
 	}
 }
 
-void output_sim_summary(SummaryStruct sumStruc)
+void output_sim_summary(SimulationStruct* simulation, SummaryStruct sumStruc)
 {
 	ofstream myfile;
 	myfile.open("summary.txt", ios::app);
@@ -263,7 +263,7 @@ void output_sim_summary(SummaryStruct sumStruc)
 	myfile << "Finish simulation in " << (double)(sumStruc.time2 - sumStruc.time1) / CLOCKS_PER_SEC << " secs." << endl;
 	myfile << "Finish replay in " << (double)(sumStruc.time3 - sumStruc.time2) / CLOCKS_PER_SEC << " secs." << endl;
 	myfile << "Photon weight should be divided by " << scale1 << endl << endl << "Detected photon number:" << endl;
-	for (int i = 0; i < NUM_OF_DETECTOR; i++) {
+	for (int i = 0; i < simulation->num_detector; i++) {
 		myfile << "SDS " << i << ":\t" << sumStruc.total_SDS_detect_num[i] << endl;
 	}
 	myfile.close();
@@ -275,7 +275,7 @@ void output_A_rz(SimulationStruct* sim, unsigned long long *data)
 	double scale1 = (double)0xFFFFFFFF * (double)sim->number_of_photons;
 	double scale2; // scale for different r and z
 	
-	for (int s = 0; s < NUM_OF_DETECTOR; s++) {
+	for (int s = 0; s < sim->num_detector; s++) {
 		char output[100];
 		generate_filename(output, "A_rz_SDS_", s + 1);
 
@@ -304,7 +304,7 @@ void output_A0_z(SimulationStruct* sim, unsigned long long *data)
 	double scale1 = (double)0xFFFFFFFF * (double)sim->number_of_photons;
 	double scale2 = scale1 * 2 * PI*(0 + 0.5)*record_dr*record_dr*record_dz; // scale for different r and z
 
-	for (int s = 0; s < NUM_OF_DETECTOR; s++) {
+	for (int s = 0; s < sim->num_detector; s++) {
 		char output[100];
 		generate_filename(output, "A0_z_SDS_", s + 1);
 
