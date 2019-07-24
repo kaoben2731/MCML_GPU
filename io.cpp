@@ -63,6 +63,10 @@ int read_mua_mus(SimulationStruct** simulations, char* sim_input, char* tissue_i
 		cout << "Number of SDS is too large!\nThis program only allow number lower than " << PRESET_NUM_DETECTOR << " !\n";
 		return 0;
 	}
+	if (num_detector != sim_input_struct["probes"]["detectors"].size()) {
+		cout << "Number of SDS : "<<num_detector <<" not match the probe setting : "<< sim_input_struct["probes"]["detectors"].size() <<" !\n";
+		return 0;
+	}
 
 	float lower_thickness = 10.0;
 
