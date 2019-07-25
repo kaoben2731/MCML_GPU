@@ -341,7 +341,7 @@ __global__ void MCd(MemStruct DeviceMem, unsigned long long seed)
 						if (rn_gen(&state) > *detector_reflectance_dc) {
 							p.weight = 0;
 						}
-						else
+						else // reflect into tissue
 						{
 							p.dz *= -1;
 							p.z *= -1;
@@ -784,8 +784,7 @@ __device__ bool detect(PhotonStruct* p, Fibers* f)
 
 				if (f->detected_photon_counter < SDS_detected_temp_size) {
 					f->detected_SDS_number[f->detected_photon_counter] = i;
-					//f->data[f->detected_photon_counter] = p->weight  * acos(temp) * RPI;
-					f->data[f->detected_photon_counter] = p->weight;
+					f->data[f->detected_photon_counter] = p->weight  * acos(temp) * RPI;
 					f->detected_state[f->detected_photon_counter] = p->state_seed;
 					f->detected_photon_counter++;
 				}
