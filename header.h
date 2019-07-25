@@ -36,18 +36,17 @@ using namespace std;
 #define RPI                0.318309886f
 #define STR_LEN            200
 #define NORMAL             0                    // 1: normal, 0: oblique
-#define PRESET_NUM_DETECTOR    (NORMAL ? 15:15) //(NORMAL ? 5:10)		//(NORMAL ? 4:9)       // normal: 4 fibers, oblique: 9 fibers
-//#define ANGLE              (NORMAL ? 0:45)      // normal: 0 degree, oblique: 45 degree  
-#define ANGLE              (NORMAL ? 0:0)      // normal: 0 degree, oblique: 0 degree  by CY
+#define PRESET_NUM_DETECTOR 15 //(NORMAL ? 5:10)		//(NORMAL ? 4:9)       // normal: 4 fibers, oblique: 9 fibers
+#define ANGLE              0   //(NORMAL ? 0:0)      // normal: 0 degree, oblique: 0 degree  by CY
 
-#define NAOfSource         (NORMAL ? 0.37:0.37) // skin: (NORMAL ? 0.26:0.26)
-#define NAOfDetector       (NORMAL ? 0.12:0.12) // skin: (NORMAL ? 0.26:0.26)
+//#define NAOfSource         (NORMAL ? 0.37:0.37) // skin: (NORMAL ? 0.26:0.26)
+//#define NAOfDetector       (NORMAL ? 0.12:0.12) // skin: (NORMAL ? 0.26:0.26)
 #define n_detector         1.457//1.457//1.457//1.457 -fiber//1.61 //YU-modified
 #define n_source           1.457//1.457//1.457//1.61 //YU-modified
-#define illumination_r     0.075 //0.075		//radius //Wang-modified //skin:0.025  IJV:0.075
-#define collect_r          0.015 // skin: 0.01
-#define NUMBER_PHOTONS     50000000 //1000000000//50000000//400000000 -skin
-#define NUMBER_SIMULATION  1//42//31//54//36  //IJV:36 skin:4
+//#define illumination_r     0.075 //0.075		//radius //Wang-modified //skin:0.025  IJV:0.075
+//#define collect_r          0.015 // skin: 0.01
+//#define NUMBER_PHOTONS     50000000 //1000000000//50000000//400000000 -skin
+//#define NUMBER_SIMULATION  1//42//31//54//36  //IJV:36 skin:4
 
 //#define WEIGHT 0.0001f
 #define WEIGHTI 429497u //0xFFFFFFFFu*WEIGHT
@@ -97,6 +96,7 @@ typedef struct
 	float raduis;
 	float NA;
 	float position;
+	float angle;
 }DetectorInfoStruct;
 
 typedef struct
@@ -112,10 +112,6 @@ typedef struct
 
 typedef struct
 {
-	float radius[PRESET_NUM_DETECTOR];
-	float NA[PRESET_NUM_DETECTOR];
-	float position[PRESET_NUM_DETECTOR];
-	float angle[PRESET_NUM_DETECTOR];
 	int detected_photon_counter; // record how many photon had been detected by this fiber in one iteration, should not exceed SDS_detected_temp_size
 	float data[SDS_detected_temp_size]; // the photon weight detected by this probe
 	int detected_SDS_number[SDS_detected_temp_size]; // record which SDS detected the photon
@@ -168,3 +164,4 @@ __device__ __constant__ unsigned int n_layers_dc[1];
 __device__ __constant__ unsigned int num_detector_dc[1];
 __device__ __constant__ float start_weight_dc[1];
 __device__ __constant__ LayerStruct layers_dc[PRESET_NUM_LAYER + 2];
+__device__ __constant__ DetectorInfoStruct detInfo_dc[PRESET_NUM_DETECTOR + 1];

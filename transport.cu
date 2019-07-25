@@ -28,7 +28,7 @@ __device__ unsigned int PhotonSurvive(PhotonStruct*, curandState* state);
 __device__ void AtomicAddULL(unsigned long long* address, unsigned int add);
 __device__ bool detect(PhotonStruct* p, Fibers* f);
 __device__ int binarySearch(float *data, float value);
-void fiber_initialization(Fibers* f, SimulationStruct* sim);
+void fiber_initialization(Fibers* f);
 void fiber_initialization_replay(Fibers_Replay* f_r, SimulationStruct* sim);
 void output_fiber(SimulationStruct* sim, float* reflectance, char* output); //Wang modified
 void output_SDS_pathlength(SimulationStruct* simulation, float ***pathlength_weight_arr, int *temp_SDS_detect_num, int SDS_to_output);
@@ -91,7 +91,7 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char
 	while (threads_active_total>0)
 	{
 		i++;
-		fiber_initialization(HostMem.f, simulation); //Wang modified
+		fiber_initialization(HostMem.f); //Wang modified
 																//printf("Size of Fibers\t%d\n",sizeof(Fibers));
 		cudaMemcpy(DeviceMem.f, HostMem.f, NUM_THREADS * sizeof(Fibers), cudaMemcpyHostToDevice); //malloc sizeof(FIbers) equals to 13*(5*4)
 
@@ -171,7 +171,7 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char
 			//printf("\t\tafter copy seeds to device mem\n");
 
 			// init fibers
-			fiber_initialization(HostMem.f, simulation);
+			fiber_initialization(HostMem.f);
 			cudaMemcpy(DeviceMem.f, HostMem.f, NUM_THREADS * sizeof(Fibers), cudaMemcpyHostToDevice);
 			fiber_initialization_replay(HostMem_Replay.f_r, simulation);
 			cudaMemcpy(DeviceMem_Replay.f_r, HostMem_Replay.f_r, NUM_THREADS * sizeof(Fibers_Replay), cudaMemcpyHostToDevice);
@@ -723,7 +723,7 @@ __device__ unsigned int PhotonSurvive(PhotonStruct* p, curandState *state)
 __device__ bool detect(PhotonStruct* p, Fibers* f)
 {
 	float angle = ANGLE*PI / 180; //YU-modified
-	float critical = asin(f->NA[1] / n_detector); //YU-modified
+	float critical = asin(detInfo_dc[1].NA / n_detector); //YU-modified
 	float uz_rotated = (p->dx*sin(angle)) + (p->dz*cos(angle)); //YU-modified
 	float uz_angle = acos(fabs(uz_rotated)); //YU-modified
 	float distance;
@@ -732,61 +732,42 @@ __device__ bool detect(PhotonStruct* p, Fibers* f)
 	// NA consideration
 	if (uz_angle <= critical)  // successfully detected
 	{
-		if (NORMAL)
+		distance = sqrt(p->x * p->x + p->y * p->y);
+		//all circular
+		/*
+		for (int i = 1; i <= PRESET_NUM_DETECTOR; i++)
 		{
-			distance = sqrt(p->x * p->x + p->y * p->y);
-			if (distance >= 0.025 && distance <= 0.035)           // SDS = 0.03 cm
-				f->data[1] += p->weight / 6.0;
-			if (distance >= 0.03 && distance <= 0.05)             // SDS = 0.04 cm
-				f->data[2] += p->weight / 16.0;
-			if (distance >= 0.05 && distance <= 0.07)             // SDS = 0.06 cm
-				f->data[3] += p->weight / 24.0;
-			if (distance >= 0.07 && distance <= 0.09)             // SDS = 0.08 cm
-				f->data[4] += p->weight / 32.0;
+		if ((distance > (f->position[i] - f->radius[i])) && (distance <= (f->position[i] + f->radius[i])))
+		{
+		//record circular instead of a fiber area
+		f->data[i] += p->weight;
 		}
-		else
+		}
+		*/
+		//fiber only
+		for (int i = 1; i <= *num_detector_dc; i++)
 		{
-			distance = sqrt(p->x * p->x + p->y * p->y);
-			//all circular
-			/*
-			for (int i = 1; i <= PRESET_NUM_DETECTOR; i++)
-			{
-			if ((distance > (f->position[i] - f->radius[i])) && (distance <= (f->position[i] + f->radius[i])))
-			{
-			//record circular instead of a fiber area
-			f->data[i] += p->weight;
-			}
-			}
-			*/
-			//fiber only
-			for (int i = 1; i <= *num_detector_dc; i++)
-			{
-				if ((distance >= (f->position[i] - f->radius[i])) && (distance <= (f->position[i] + f->radius[i])))
-				{
-					float temp;
-					temp = (distance*distance + f->position[i] * f->position[i] - f->radius[i] * f->radius[i]) / (2 * distance*f->position[i]);
-					// check for rounding error!
-					if (temp > 1.0f)
-						temp = 1.0f;
+			if ((distance >= (detInfo_dc[i].position - detInfo_dc[i].raduis)) && (distance <= (detInfo_dc[i].position + detInfo_dc[i].raduis))) {
+				float temp;
+				temp = (distance*distance + detInfo_dc[i].position * detInfo_dc[i].position - detInfo_dc[i].raduis * detInfo_dc[i].raduis) / (2 * distance * detInfo_dc[i].position);
+				// check for rounding error!
+				if (temp > 1.0f)
+					temp = 1.0f;
 
-					if (f->detected_photon_counter < SDS_detected_temp_size) {
-						f->detected_SDS_number[f->detected_photon_counter] = i;
-						f->data[f->detected_photon_counter] = p->weight  * acos(temp) * RPI;
-						f->detected_state[f->detected_photon_counter] = p->state_seed;
-						f->detected_photon_counter++;
-					}
-					detected_flag=true;
-
+				if (f->detected_photon_counter < SDS_detected_temp_size) {
+					f->detected_SDS_number[f->detected_photon_counter] = i;
+					f->data[f->detected_photon_counter] = p->weight  * acos(temp) * RPI;
+					f->detected_state[f->detected_photon_counter] = p->state_seed;
+					f->detected_photon_counter++;
 				}
+				detected_flag=true;
 			}
 		}
 	}
-	if (detected_flag)
-	{
+	if (detected_flag) {
 		return true;
 	}
-	else
-	{
+	else {
 		return false;
 	}
 }
@@ -804,6 +785,9 @@ int InitDCMem(SimulationStruct* sim)
 
 	// Copy layer data to constant device memory
 	cudaMemcpyToSymbol(layers_dc, sim->layers, (sim->num_layers + 2) * sizeof(LayerStruct));
+
+	// Copy detector data to constant device memory
+	cudaMemcpyToSymbol(detInfo_dc, sim->detInfo, (sim->num_detector + 1) * sizeof(DetectorInfoStruct));
 
 	// Copy num_photons_dc to constant device memory
 	cudaMemcpyToSymbol(num_photons_dc, &(sim->number_of_photons), sizeof(unsigned long long));
@@ -835,7 +819,7 @@ int InitMemStructs(MemStruct* HostMem, MemStruct* DeviceMem, SimulationStruct* s
 	//Allocate and initialize fiber f on the device and host
 	HostMem->f = (Fibers*)malloc(NUM_THREADS * sizeof(Fibers));
 	cudaMalloc((void**)&DeviceMem->f, NUM_THREADS * sizeof(Fibers));
-	fiber_initialization(HostMem->f, sim); //Wang modified
+	fiber_initialization(HostMem->f); //Wang modified
 	cudaMemcpy(DeviceMem->f, HostMem->f, NUM_THREADS * sizeof(Fibers), cudaMemcpyHostToDevice);
 
 	//Allocate states on the device and host

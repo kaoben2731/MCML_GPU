@@ -141,11 +141,14 @@ int read_mua_mus(SimulationStruct** simulations, char* sim_input, char* tissue_i
 		// for source
 		(*simulations)[i].detInfo[0].NA = sim_input_struct["probes"]["source"]["NA"];
 		(*simulations)[i].detInfo[0].raduis = sim_input_struct["probes"]["source"]["radius"];
+		(*simulations)[i].detInfo[0].position = 0;
+		(*simulations)[i].detInfo[0].angle = ANGLE*PI / 180;
 		// for detector
 		for (int d = 0; d < num_detector; d++) {
 			(*simulations)[i].detInfo[d + 1].NA = sim_input_struct["probes"]["detectors"][d]["NA"];
 			(*simulations)[i].detInfo[d + 1].raduis = sim_input_struct["probes"]["detectors"][d]["radius"];
 			(*simulations)[i].detInfo[d + 1].position = sim_input_struct["probes"]["detectors"][d]["pos"];
+			(*simulations)[i].detInfo[d + 1].angle = ANGLE*PI / 180;
 		}
 
 		// Allocate memory for the layers (including one for the upper and one for the lower)
