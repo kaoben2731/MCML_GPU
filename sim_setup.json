@@ -1,8 +1,8 @@
 {
   "number_simulation": 1,
-  "number_photons": 100000000,
+  "number_photons": 1000000000,
   "number_layers": 5,
-  "detector_reflectance": 0.1,
+  "detector_reflectance": 0.0,
   "upper_n": 1.457,
   "lower_n": 1.457,
   "probes": {
@@ -14,17 +14,17 @@
     "detectors": [
       {
         "pos": 0.8,
-        "NA": 0.37,
-        "radius": 0.02
+        "NA": 0.13,
+        "radius": 0.001
       },
       {
         "pos": 1.5,
-        "NA": 0.37,
+        "NA": 0.12,
         "radius": 0.02
       },
       {
         "pos": 3.0,
-        "NA": 0.37,
+        "NA": 0.12,
         "radius": 0.02
       }
     ]

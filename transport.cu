@@ -751,30 +751,16 @@ __device__ unsigned int PhotonSurvive(PhotonStruct* p, curandState *state)
 __device__ bool detect(PhotonStruct* p, Fibers* f)
 {
 	float angle = ANGLE*PI / 180; //YU-modified
-	float critical = asin(detInfo_dc[1].NA / n_detector); //YU-modified
 	float uz_rotated = (p->dx*sin(angle)) + (p->dz*cos(angle)); //YU-modified
 	float uz_angle = acos(fabs(uz_rotated)); //YU-modified
 	float distance;
 	bool detected_flag=false;
 
-	// NA consideration
-	if (uz_angle <= critical)  // successfully detected
+	distance = sqrt(p->x * p->x + p->y * p->y);
+	
+	for (int i = 1; i <= *num_detector_dc; i++)
 	{
-		distance = sqrt(p->x * p->x + p->y * p->y);
-		//all circular
-		/*
-		for (int i = 1; i <= PRESET_NUM_DETECTOR; i++)
-		{
-		if ((distance > (f->position[i] - f->radius[i])) && (distance <= (f->position[i] + f->radius[i])))
-		{
-		//record circular instead of a fiber area
-		f->data[i] += p->weight;
-		}
-		}
-		*/
-		//fiber only
-		for (int i = 1; i <= *num_detector_dc; i++)
-		{
+		if (uz_angle <= critical_angle_dc[i]) { // successfully detected
 			if ((distance >= (detInfo_dc[i].position - detInfo_dc[i].raduis)) && (distance <= (detInfo_dc[i].position + detInfo_dc[i].raduis))) {
 				float temp;
 				temp = (distance*distance + detInfo_dc[i].position * detInfo_dc[i].position - detInfo_dc[i].raduis * detInfo_dc[i].raduis) / (2 * distance * detInfo_dc[i].position);
@@ -788,7 +774,7 @@ __device__ bool detect(PhotonStruct* p, Fibers* f)
 					f->detected_state[f->detected_photon_counter] = p->state_seed;
 					f->detected_photon_counter++;
 				}
-				detected_flag=true;
+				detected_flag = true;
 			}
 		}
 	}
@@ -822,6 +808,10 @@ int InitDCMem(SimulationStruct* sim)
 	
 	// Copy detector_reflectance_dc to constant device memory
 	cudaMemcpyToSymbol(detector_reflectance_dc, &(sim->detector_reflectance), sizeof(float));
+
+	// Copy detector critical angles to constant device memory
+	cudaMemcpyToSymbol(critical_angle_dc, sim->critical_arr, (sim->num_detector + 1) * sizeof(float));
+	
 
 	return 0;
 }

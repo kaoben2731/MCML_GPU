@@ -108,6 +108,7 @@ typedef struct
 	float detector_reflectance; // the reflectance change of detector
 	LayerStruct* layers;
 	DetectorInfoStruct* detInfo;
+	float* critical_arr; // the array for critical angle for each detector
 }SimulationStruct;
 
 typedef struct
@@ -166,3 +167,4 @@ __device__ __constant__ float start_weight_dc[1];
 __device__ __constant__ float detector_reflectance_dc[1];
 __device__ __constant__ LayerStruct layers_dc[PRESET_NUM_LAYER + 2];
 __device__ __constant__ DetectorInfoStruct detInfo_dc[PRESET_NUM_DETECTOR + 1];
+__device__ __constant__ float critical_angle_dc[PRESET_NUM_DETECTOR + 1];

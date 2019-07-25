@@ -155,6 +155,14 @@ int read_mua_mus(SimulationStruct** simulations, char* sim_input, char* tissue_i
 			(*simulations)[i].detInfo[d + 1].position = sim_input_struct["probes"]["detectors"][d]["pos"];
 			(*simulations)[i].detInfo[d + 1].angle = ANGLE*PI / 180;
 		}
+		// presetting critical angle for detectors
+		(*simulations)->critical_arr = new float[num_detector + 1];
+		for (int d = 1; d <= num_detector; d++) {
+			(*simulations)->critical_arr[d] = asin((*simulations)[i].detInfo[d].NA / n_detector);
+			cout << (*simulations)->critical_arr[d]<<"\t";
+		}
+		cout << endl;
+		system("pause");
 
 		// Allocate memory for the layers (including one for the upper and one for the lower)
 		(*simulations)[i].layers = (LayerStruct*)malloc(sizeof(LayerStruct)*(n_layers + 2));
