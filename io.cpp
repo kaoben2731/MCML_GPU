@@ -159,10 +159,7 @@ int read_mua_mus(SimulationStruct** simulations, char* sim_input, char* tissue_i
 		(*simulations)->critical_arr = new float[num_detector + 1];
 		for (int d = 1; d <= num_detector; d++) {
 			(*simulations)->critical_arr[d] = asin((*simulations)[i].detInfo[d].NA / n_detector);
-			cout << (*simulations)->critical_arr[d]<<"\t";
 		}
-		cout << endl;
-		system("pause");
 
 		// Allocate memory for the layers (including one for the upper and one for the lower)
 		(*simulations)[i].layers = (LayerStruct*)malloc(sizeof(LayerStruct)*(n_layers + 2));
