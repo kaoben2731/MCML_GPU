@@ -105,7 +105,7 @@ typedef struct
 	unsigned int num_layers;
 	unsigned int num_detector;
 	float start_weight;
-	float detector_reflectance;
+	float detector_reflectance; // the reflectance change of detector
 	LayerStruct* layers;
 	DetectorInfoStruct* detInfo;
 }SimulationStruct;
@@ -163,5 +163,6 @@ __device__ __constant__ unsigned long long num_photons_dc[1];
 __device__ __constant__ unsigned int n_layers_dc[1];
 __device__ __constant__ unsigned int num_detector_dc[1];
 __device__ __constant__ float start_weight_dc[1];
+__device__ __constant__ float detector_reflectance_dc[1];
 __device__ __constant__ LayerStruct layers_dc[PRESET_NUM_LAYER + 2];
 __device__ __constant__ DetectorInfoStruct detInfo_dc[PRESET_NUM_DETECTOR + 1];

@@ -325,6 +325,7 @@ __global__ void MCd(MemStruct DeviceMem, unsigned long long seed)
 
 		if (new_layer != p.layer)
 		{
+			int temp_layer = p.layer;
 			// set the remaining step length to 0
 			s = 0.0f;
 
@@ -333,7 +334,20 @@ __global__ void MCd(MemStruct DeviceMem, unsigned long long seed)
 				if (new_layer == 0)
 				{   //Diffuse reflectance
 					bool detected = detect(&p, &f);
-					p.weight = 0; // Set the remaining weight to 0, effectively killing the photon
+					if (detected == 1) {
+						p.weight = 0; // Set the remaining weight to 0, effectively killing the photon
+					}
+					else { // maybe the detector will reflect the photon
+						if (rn_gen(&state) > *detector_reflectance_dc) {
+							p.weight = 0;
+						}
+						else
+						{
+							p.dz *= -1;
+							p.z *= -1;
+							p.layer = temp_layer;
+						}
+					}
 				}
 				if (new_layer > *n_layers_dc)
 				{	//Transmitted
@@ -448,6 +462,7 @@ __global__ void MCd_replay(MemStruct DeviceMem, MemStruct_Replay DeviceMem_Repla
 
 			if (new_layer != p.layer)
 			{
+				int temp_layer = p.layer;
 				// set the remaining step length to 0
 				s = 0.0f;
 
@@ -460,9 +475,22 @@ __global__ void MCd_replay(MemStruct DeviceMem, MemStruct_Replay DeviceMem_Repla
 							f_r.have_detected = true;
 							f_r.data = f.data[0];
 							f_r.detected_SDS_number = f.detected_SDS_number[0];
+
+							p.weight = 0; // Set the remaining weight to 0, effectively killing the photon
+							break;
 						}
-						p.weight = 0; // Set the remaining weight to 0, effectively killing the photon
-						break;
+						else { // maybe the detector will reflect the photon
+							if (rn_gen(&state) > *detector_reflectance_dc) {
+								p.weight = 0;
+								break;
+							}
+							else
+							{
+								p.dz *= -1;
+								p.z *= -1;
+								p.layer = temp_layer;
+							}
+						}
 					}
 					if (new_layer > *n_layers_dc)
 					{	//Transmitted
@@ -756,7 +784,8 @@ __device__ bool detect(PhotonStruct* p, Fibers* f)
 
 				if (f->detected_photon_counter < SDS_detected_temp_size) {
 					f->detected_SDS_number[f->detected_photon_counter] = i;
-					f->data[f->detected_photon_counter] = p->weight  * acos(temp) * RPI;
+					//f->data[f->detected_photon_counter] = p->weight  * acos(temp) * RPI;
+					f->data[f->detected_photon_counter] = p->weight;
 					f->detected_state[f->detected_photon_counter] = p->state_seed;
 					f->detected_photon_counter++;
 				}
@@ -781,7 +810,7 @@ int InitDCMem(SimulationStruct* sim)
 	cudaMemcpyToSymbol(num_detector_dc, &(sim->num_detector), sizeof(unsigned int));
 
 	// Copy start_weight_dc to constant device memory
-	cudaMemcpyToSymbol(start_weight_dc, &(sim->start_weight), sizeof(unsigned int));
+	cudaMemcpyToSymbol(start_weight_dc, &(sim->start_weight), sizeof(float));
 
 	// Copy layer data to constant device memory
 	cudaMemcpyToSymbol(layers_dc, sim->layers, (sim->num_layers + 2) * sizeof(LayerStruct));
@@ -791,6 +820,9 @@ int InitDCMem(SimulationStruct* sim)
 
 	// Copy num_photons_dc to constant device memory
 	cudaMemcpyToSymbol(num_photons_dc, &(sim->number_of_photons), sizeof(unsigned long long));
+	
+	// Copy detector_reflectance_dc to constant device memory
+	cudaMemcpyToSymbol(detector_reflectance_dc, &(sim->detector_reflectance), sizeof(float));
 
 	return 0;
 }
