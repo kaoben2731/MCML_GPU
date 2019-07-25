@@ -49,6 +49,11 @@ int read_mua_mus(SimulationStruct** simulations, char* sim_input, char* tissue_i
 	//const int n_simulations =1;
 
 	double detector_reflectance = sim_input_struct["detector_reflectance"];
+	if (detector_reflectance < 0 || detector_reflectance>1) {
+		cout << "Detector reflectance: " << detector_reflectance << " is out of range !\n";
+		return 0;
+	}
+
 	int n_layers = sim_input_struct["number_layers"];
 	if (n_layers > PRESET_NUM_LAYER) {
 		cout << "Number of layer is too large!\nThis program only allow number lower than " << PRESET_NUM_LAYER << " !\n";
