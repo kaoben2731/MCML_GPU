@@ -176,8 +176,8 @@ int read_mua_mus(SimulationStruct** simulations, char* sim_input, char* tissue_i
 			(*simulations)[i].layers[l].z_max = z_max_cumulate;
 			(*simulations)[i].layers[l].mutr = 1.0f / (mua[i][l - 1] + mus[i][l - 1]);
 			z_min_cumulate += thickness[i][l - 1];
-			cout << "layer " << l << ", mua= " << (*simulations)[i].layers[l].mua << ", z_min=" << (*simulations)[i].layers[l].z_min << ", z_max=" << (*simulations)[i].layers[l].z_max << endl;
-			system("pause");
+			//cout << "layer " << l << ", mua= " << (*simulations)[i].layers[l].mua << ", z_min=" << (*simulations)[i].layers[l].z_min << ", z_max=" << (*simulations)[i].layers[l].z_max << endl;
+			//system("pause");
 		}
 		// set the depth of the lower layer
 		if ((*simulations)[i].layers[n_layers].z_max < lower_thickness) {
