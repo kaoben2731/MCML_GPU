@@ -53,6 +53,10 @@ int main(int argc, char* argv[])
 
 void FreeSimulationStruct(SimulationStruct* sim, int n_simulations)
 {
-	for (int i = 0; i < n_simulations; i++) free(sim[i].layers);
+	for (int i = 0; i < n_simulations; i++) {
+		free(sim[i].layers);
+		free(sim[i].detInfo);
+		free(sim[i].critical_arr);
+	}
 	free(sim);
 }
