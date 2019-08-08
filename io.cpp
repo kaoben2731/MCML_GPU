@@ -280,7 +280,7 @@ void output_SDS_pathlength(SimulationStruct* simulation, float ***pathlength_wei
 	}
 }
 
-void output_sim_summary(SimulationStruct* simulation, SummaryStruct sumStruc)
+void output_sim_summary(SimulationStruct* simulation, SummaryStruct sumStruc, bool do_replay)
 {
 	double scale1 = (double)0xFFFFFFFF * (double)sumStruc.number_of_photons;
 
@@ -288,7 +288,9 @@ void output_sim_summary(SimulationStruct* simulation, SummaryStruct sumStruc)
 	myfile.open("summary.json", ios::app);
 	myfile << "{\n";
 	myfile << "\"sim_time\": " << (double)(sumStruc.time2 - sumStruc.time1) / CLOCKS_PER_SEC << ",\n";
-	myfile << "\"replay_time\": " << (double)(sumStruc.time3 - sumStruc.time2) / CLOCKS_PER_SEC << ",\n";
+	if (do_replay) {
+		myfile << "\"replay_time\": " << (double)(sumStruc.time3 - sumStruc.time2) / CLOCKS_PER_SEC << ",\n";
+	}
 	myfile << "\"each_photon_weight\": " << scale1 << ",\n";
 	myfile << "\"SDS_detected_number\": [";
 	for (int d = 0; d < simulation->num_detector-1; d++) {

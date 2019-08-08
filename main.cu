@@ -9,7 +9,7 @@
 
 void FreeSimulationStruct(SimulationStruct* sim, int n_simulations);
 int read_mua_mus(SimulationStruct** simulations, char* sim_input, char* tissue_input);
-void DoOneSimulation(SimulationStruct* simulation, int index, char* output, char* fiber1_position); //Wang modified
+void DoOneSimulation(SimulationStruct* simulation, int index, char* output, bool do_replay, bool output_each_pathlength);
 void show_usage(string name);
 
 
@@ -21,6 +21,26 @@ int main(int argc, char* argv[])
 
 	if (argc < 4) {
 		show_usage(argv[0]);
+		return 0;
+	}
+
+	bool do_replay = false;
+	bool output_each_pathlength = false;
+
+	for (int i = 1; i < argc; i++) {
+		if (string(argv[i]) == "-h") {
+			show_usage(argv[0]);
+			return 0;
+		}
+		else if (string(argv[i]) == "-R") {
+			do_replay = true;
+		}
+		else if (string(argv[i]) == "-P") {
+			output_each_pathlength = true;
+		}
+	}
+	if (output_each_pathlength && !do_replay) {
+		cout << "-P option only work with -R option!\n";
 		return 0;
 	}
 
@@ -46,7 +66,7 @@ int main(int argc, char* argv[])
 	{
 		// Run a simulation
 		printf("simulating %d\n", i);
-		DoOneSimulation(&simulations[i], i, argv[3], argv[1]); //Wang modified
+		DoOneSimulation(&simulations[i], i, argv[3], do_replay, output_each_pathlength); //Wang modified
 	}
 
 	time2 = clock();
