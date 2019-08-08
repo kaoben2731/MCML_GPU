@@ -62,6 +62,9 @@ using namespace std;
 #define record_nr 1000
 #define record_nz 500
 
+// define the percentage of change mua to calculate average pathlength
+#define mua_change_ratio 0.001 // 0.1%
+
 // TYPEDEFS
 typedef struct __align__(16)
 {

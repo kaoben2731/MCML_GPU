@@ -5,6 +5,7 @@
 #include <float.h> //for FLT_MAX
 #include <vector> // for vector
 #include <assert.h>
+#include <math.h>
 
 
 int InitMemStructs(MemStruct* HostMem, MemStruct* DeviceMem, SimulationStruct* sim);
@@ -42,6 +43,8 @@ void FreeG(G_Array* HostG, G_Array* DeviceG);
 
 void output_A_rz(SimulationStruct* sim, unsigned long long *data);
 void output_A0_z(SimulationStruct* sim, unsigned long long *data);
+
+void calculate_average_pathlength(double *average_PL, float ***pathlength_weight_arr, SimulationStruct *sim, int *total_SDS_detect_num);
 
 
 __device__ float rn_gen(curandState *s)
@@ -198,7 +201,14 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, bool
 
 		}
 
-		output_SDS_pathlength(simulation, pathlength_weight_arr, temp_SDS_detect_num, 0);
+		if (output_each_pathlength) {
+			output_SDS_pathlength(simulation, pathlength_weight_arr, temp_SDS_detect_num, 0);
+		}
+		else {
+			double *average_PL = new double[simulation->num_layers * simulation->num_detector];
+			calculate_average_pathlength(average_PL, pathlength_weight_arr, simulation, temp_SDS_detect_num);
+		}
+
 		output_fiber(simulation, replay_reflectance, output);
 
 		// copy the A_rz and A0_z back to host
@@ -231,6 +241,31 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, bool
 
 	delete[] total_SDS_detect_num;
 	delete[] reflectance;
+}
+
+void calculate_average_pathlength(double *average_PL ,float ***pathlength_weight_arr, SimulationStruct *sim, int *total_SDS_detect_num)
+{
+	double inverse_start_weight = double(1/sim->start_weight);
+	double sum_photon_reflectance = 0;
+	double sum_photon_change_reflectnace = 0;
+	double photon_energy = 0;
+	for (int s = 0; s < sim->num_detector; s++) {
+		sum_photon_reflectance = 0;
+		for (int i = 0; i < total_SDS_detect_num[s]; i++) {
+			photon_energy = pathlength_weight_arr[s][i][0] * inverse_start_weight;
+			sum_photon_reflectance += photon_energy;
+		}
+		for (int l = 1; l <= sim->num_layers; l++) {
+			sum_photon_change_reflectnace = 0;
+			double changed_mua = mua_change_ratio * sim->layers[l].mua;
+			for (int i = 0; i < total_SDS_detect_num[s]; i++) {
+				photon_energy = pathlength_weight_arr[s][i][0] * inverse_start_weight;
+				photon_energy *= exp(-1 * changed_mua * pathlength_weight_arr[s][i][l]);
+				sum_photon_change_reflectnace += photon_energy;
+			}
+			average_PL[s * sim->num_detector + l - 1] = log(sum_photon_reflectance / sum_photon_change_reflectnace) / changed_mua;
+		}
+	}
 }
 
 void calculate_reflectance(Fibers* f, float *result, int* total_SDS_detect_num, vector<vector<curandState>>& detected_state_arr)

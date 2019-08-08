@@ -280,6 +280,24 @@ void output_SDS_pathlength(SimulationStruct* simulation, float ***pathlength_wei
 	}
 }
 
+void output_average_pathlength(SimulationStruct* sim, double *average_PL)
+{
+	for (int s = 0; s < sim->num_detector; s++) {
+		char output[100];
+		generate_filename(output, "pathlength_SDS_", s + 1);
+		//cout << "output to: " << output << ", add " << temp_SDS_detect_num[s] << " photons" << endl;
+
+		// output the pathlength
+		ofstream myfile;
+		myfile.open(output, ios::app);
+		for (int l = 0; l < sim->num_layers; l++) {
+			myfile << average_PL[s*sim->num_detector + l] << '\t';
+		}
+		myfile << endl;
+		myfile.close();
+	}
+}
+
 void output_sim_summary(SimulationStruct* simulation, SummaryStruct sumStruc, bool do_replay)
 {
 	double scale1 = (double)0xFFFFFFFF * (double)sumStruc.number_of_photons;
