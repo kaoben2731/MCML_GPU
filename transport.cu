@@ -54,7 +54,7 @@ __device__ float rn_gen(curandState *s)
 	return x;
 }
 
-void DoOneSimulation(SimulationStruct* simulation, int index, char* output, bool do_replay, bool output_each_pathlength)
+void DoOneSimulation(SimulationStruct* simulation, int index, char* output, bool do_replay, bool output_each_pathlength, bool do_output_average_pathlength)
 {
 	SummaryStruct sumStruc;
 	sumStruc.time1 = clock(); // tic
@@ -202,12 +202,17 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, bool
 
 		}
 
+		int *backup_SDS_detect_num = new int[simulation->num_detector];
+		for (int z = 0; z < simulation->num_detector; z++) {
+			backup_SDS_detect_num[z] = temp_SDS_detect_num[z];
+		}
+
 		if (output_each_pathlength) {
 			output_SDS_pathlength(simulation, pathlength_weight_arr, temp_SDS_detect_num, 0);
 		}
-		else {
+		if (do_output_average_pathlength) {
 			double *average_PL = new double[simulation->num_layers * simulation->num_detector];
-			calculate_average_pathlength(average_PL, pathlength_weight_arr, simulation, temp_SDS_detect_num);
+			calculate_average_pathlength(average_PL, pathlength_weight_arr, simulation, backup_SDS_detect_num);
 			output_average_pathlength(simulation, average_PL);
 		}
 
