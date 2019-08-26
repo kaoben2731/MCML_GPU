@@ -297,14 +297,21 @@ void output_average_pathlength(SimulationStruct* sim, double *average_PL)
 void output_sim_summary(SimulationStruct* simulation, SummaryStruct sumStruc, bool do_replay)
 {
 	double scale1 = (double)0xFFFFFFFF * (double)sumStruc.number_of_photons;
+	double sim_speed = 0;
 
 	ofstream myfile;
 	myfile.open("summary.json", ios::app);
 	myfile << "{\n";
+	myfile << "\"num_photon\": " << sumStruc.number_of_photons << ",\n";
 	myfile << "\"sim_time\": " << (double)(sumStruc.time2 - sumStruc.time1) / CLOCKS_PER_SEC << ",\n";
 	if (do_replay) {
 		myfile << "\"replay_time\": " << (double)(sumStruc.time3 - sumStruc.time2) / CLOCKS_PER_SEC << ",\n";
+		sim_speed = (double)sumStruc.number_of_photons / ((double)(sumStruc.time3 - sumStruc.time1) / CLOCKS_PER_SEC);
 	}
+	else {
+		sim_speed = (double)sumStruc.number_of_photons / ((double)(sumStruc.time2 - sumStruc.time1) / CLOCKS_PER_SEC);
+	}
+	myfile << "\"sim_speed(photons/s)\": " << sim_speed << ",\n";
 	myfile << "\"each_photon_weight\": " << scale1 << ",\n";
 	myfile << "\"SDS_detected_number\": [";
 	for (int d = 0; d < simulation->num_detector-1; d++) {

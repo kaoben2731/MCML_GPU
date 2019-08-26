@@ -27,6 +27,7 @@ int main(int argc, char* argv[])
 	bool do_replay = false;
 	bool output_each_pathlength = false;
 	bool do_output_average_pathlength = false;
+	bool do_output_bin = false;
 
 	for (int i = 1; i < argc; i++) {
 		if (string(argv[i]) == "-h") {
@@ -41,6 +42,9 @@ int main(int argc, char* argv[])
 		}
 		else if (string(argv[i]) == "-A") {
 			do_output_average_pathlength = true;
+		}
+		else if (string(argv[i]) == "-B") {
+
 		}
 	}
 	if (do_replay && !output_each_pathlength) {
