@@ -32,7 +32,7 @@ __device__ int binarySearch(float *data, float value);
 void fiber_initialization(Fibers* f);
 void fiber_initialization_replay(Fibers_Replay* f_r, SimulationStruct* sim);
 void output_fiber(SimulationStruct* sim, float* reflectance, char* output); //Wang modified
-void output_SDS_pathlength(SimulationStruct* simulation, float ***pathlength_weight_arr, int *temp_SDS_detect_num, int SDS_to_output);
+void output_SDS_pathlength(SimulationStruct* simulation, float ***pathlength_weight_arr, int *temp_SDS_detect_num, int SDS_to_output, bool do_output_bin);
 void output_sim_summary(SimulationStruct* simulation, SummaryStruct sumStruc, bool do_replay);
 //void calculate_reflectance(Fibers* f, float *result, float (*pathlength_weight_arr)[NUM_LAYER + 1][detected_temp_size], int *total_SDS_detect_num, int *temp_SDS_detect_num);
 void calculate_reflectance(Fibers* f, float *result, int* total_SDS_detect_num, vector<vector<curandState>>& detected_state_arr);
@@ -54,7 +54,7 @@ __device__ float rn_gen(curandState *s)
 	return x;
 }
 
-void DoOneSimulation(SimulationStruct* simulation, int index, char* output, bool do_replay, bool output_each_pathlength, bool do_output_average_pathlength)
+void DoOneSimulation(SimulationStruct* simulation, int index, char* output, bool do_replay, bool output_each_pathlength, bool do_output_average_pathlength, bool do_output_bin)
 {
 	SummaryStruct sumStruc;
 	sumStruc.time1 = clock(); // tic
@@ -208,7 +208,7 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, bool
 		}
 
 		if (output_each_pathlength) {
-			output_SDS_pathlength(simulation, pathlength_weight_arr, temp_SDS_detect_num, 0);
+			output_SDS_pathlength(simulation, pathlength_weight_arr, temp_SDS_detect_num, 0, do_output_bin);
 		}
 		if (do_output_average_pathlength) {
 			double *average_PL = new double[simulation->num_layers * simulation->num_detector];

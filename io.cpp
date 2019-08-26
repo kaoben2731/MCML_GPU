@@ -4,6 +4,7 @@
 #include <fstream>
 #include <sstream>
 #include "json.hpp"
+#include <stdio.h>
 
 using json = nlohmann::json;
 
@@ -220,11 +221,12 @@ int read_mua_mus(SimulationStruct** simulations, char* sim_input, char* tissue_i
 	return n_simulations;
 }
 
-void generate_filename(char *filename, char* prefix,int SDS_number)
+void generate_filename(char *filename, char* prefix, int SDS_number, char* postfix)
 {
 	// make the output file name
 	//char prefix[100] = "pathlength_SDS_";
-	char postfix[10] = ".txt";
+	//char postfix[10] = ".txt";
+
 	string SDS_num = to_string(SDS_number);
 	int i = 0;
 	for (; prefix[i] != '\0'; i++) {
@@ -242,7 +244,7 @@ void generate_filename(char *filename, char* prefix,int SDS_number)
 }
 
 // SDS_to_output: exact number of SDS to output, 1 for SDS1 , 0 for output all SDS
-void output_SDS_pathlength(SimulationStruct* simulation, float ***pathlength_weight_arr, int *temp_SDS_detect_num, int SDS_to_output)
+void output_SDS_pathlength(SimulationStruct* simulation, float ***pathlength_weight_arr, int *temp_SDS_detect_num, int SDS_to_output, bool do_output_bin)
 {
 	/*if (SDS_to_output != 0) {
 		cout << "SDS_to_output= " << SDS_to_output << endl;
@@ -263,19 +265,31 @@ void output_SDS_pathlength(SimulationStruct* simulation, float ***pathlength_wei
 
 	for (int s = start_SDS_index; s < end_SDS_index; s++) {
 		char output[100];
-		generate_filename(output, "pathlength_SDS_", s + 1);
+		if (do_output_bin) {
+			generate_filename(output, "pathlength_SDS_", s + 1, ".bin");
+			// output the pathlength
+			FILE* pFile;
+			pFile = fopen(output, "wb");
+			for (int i = 0; i < temp_SDS_detect_num[s]; i++) {
+				fwrite(pathlength_weight_arr[s][i], sizeof(float), simulation->num_layers + 2, pFile);
+			}
+			fclose(pFile);
+		}
+		else {
+			generate_filename(output, "pathlength_SDS_", s + 1, ".txt");
+			// output the pathlength
+			ofstream myfile;
+			myfile.open(output, ios::app);
+			for (int i = 0; i < temp_SDS_detect_num[s]; i++) {
+				for (int j = 0; j <= simulation->num_layers + 1; j++) {
+					myfile << pathlength_weight_arr[s][i][j] << '\t';
+				}
+				myfile << endl;
+			}
+			myfile.close();
+		}
 		//cout << "output to: " << output << ", add " << temp_SDS_detect_num[s] << " photons" << endl;
 
-		// output the pathlength
-		ofstream myfile;
-		myfile.open(output, ios::app);
-		for (int i = 0; i < temp_SDS_detect_num[s]; i++) {
-			for (int j = 0; j <= simulation->num_layers + 1; j++) {
-				myfile << pathlength_weight_arr[s][i][j] << '\t';
-			}
-			myfile << endl;
-		}
-		myfile.close();
 		temp_SDS_detect_num[s] = 0;
 	}
 }
@@ -330,7 +344,7 @@ void output_A_rz(SimulationStruct* sim, unsigned long long *data)
 	
 	for (int s = 0; s < sim->num_detector; s++) {
 		char output[100];
-		generate_filename(output, "A_rz_SDS_", s + 1);
+		generate_filename(output, "A_rz_SDS_", s + 1, ".txt");
 
 		ofstream myfile;
 		myfile.open(output, ios::app);
@@ -359,7 +373,7 @@ void output_A0_z(SimulationStruct* sim, unsigned long long *data)
 
 	for (int s = 0; s < sim->num_detector; s++) {
 		char output[100];
-		generate_filename(output, "A0_z_SDS_", s + 1);
+		generate_filename(output, "A0_z_SDS_", s + 1, ".txt");
 
 		ofstream myfile;
 		myfile.open(output, ios::app);
