@@ -267,7 +267,7 @@ void output_SDS_pathlength(SimulationStruct* simulation, float ***pathlength_wei
 		char output[100];
 		if (do_output_bin) {
 			generate_filename(output, "pathlength_SDS_", s + 1, ".bin");
-			// output the pathlength
+			// output the pathlength to binary file
 			FILE* pFile;
 			pFile = fopen(output, "wb");
 			for (int i = 0; i < temp_SDS_detect_num[s]; i++) {
@@ -277,7 +277,7 @@ void output_SDS_pathlength(SimulationStruct* simulation, float ***pathlength_wei
 		}
 		else {
 			generate_filename(output, "pathlength_SDS_", s + 1, ".txt");
-			// output the pathlength
+			// output the pathlength to txt file
 			ofstream myfile;
 			myfile.open(output, ios::app);
 			for (int i = 0; i < temp_SDS_detect_num[s]; i++) {
