@@ -24,7 +24,7 @@ the MCML with cuda acceleration which modified by Benjamin Kao and have many pur
 
 Use this command to run this program:    
 `./MCML_GPU sim_set.json input.txt output.txt <option(s)>`
-* [sim_set.json](#sim_set)
+* [sim_set.json](#simset_json)
 A .json file for setting parameters
 * [input.txt](#input_txt)
 The input file to set optical parameters for each layer
