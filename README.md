@@ -22,25 +22,25 @@ the MCML with cuda acceleration which modified by Benjamin Kao and have many pur
 
 <h2 id="exec">Execute the Program</h2>
 
-Use this command to run this program:
+Use this command to run this program:    
 `./MCML_GPU sim_set.json input.txt output.txt <option(s)>`
-### [sim_set.json](#sim_set)
-a .json file for setting parameters
-### [input.txt](#input_txt)
-the input file to set optical parameters for each layer
-### [output.txt](#output_txt)
-the output filename for reflectance
-### options
-#### -h
+* [sim_set.json](#sim_set)
+A .json file for setting parameters
+* [input.txt](#input_txt)
+The input file to set optical parameters for each layer
+* [output.txt](#output_txt)
+The output filename for reflectance
+* options
+    * -h
 Print the helping information
-#### -R
+    * -R
 Replay the detected photons after first simulation, to get the pathlength in each layer or absorbance matrix.
 With this option, there will be output of [A_rz_SDS_#.txt](#arz_txt) and [A0_z_SDS_#.txt](#a0z_txt)
-#### -P
+    * -P
 Output the pathlength for each photon in [pathlength_SDS_#.txt](#PLSDS_txt), otherwise output the calculated average pathlength in [average_pathlength.txt](#avg_PL_txt)
-#### -A
+    * -A
 Calaulate and output the average pathlength
-#### -B
+    * -B
 Output the pathlength file in binary format for faster speed
 
 
@@ -50,38 +50,38 @@ Output the pathlength file in binary format for faster speed
 
 <h3 id="simset_json">sim_set.json</h3>
 
-use a .json file to set the parameter of simulations
-#### number_simulation:
-how many simulations to run, usually set to 1.
-#### number_photons:
-how many photons in one simulaiton
-#### number_layers:
-how many layer the tissue is
-#### detector_reflectance:
-the reflectance rate of the detector.  If no reflectance, set to 0.
-#### upper_n:
-the refractive index for upper layer outside the tissue
-#### lower_n:
-the refractive index for lower layer outside the tissue
-#### probes:
-the parameters for the fibers
-##### source:
-parameters for source fiber
-###### NA:
-numerical aperture of source fiber
-###### radius:
-the radius of source fiber, in cm
-##### num_SDS:
-number of detector fibers
-##### detectors:
-parameters for detector fibers, shold be an array of the same size as "num_SDS"
-###### pos:
-the position (distance of the center of source fiber to the center of this detector fiber), in cm
-###### NA:
-numerical aperture of this detector fiber
-###### radius:
-the radius of this detector fiber, in cm
-#### Example:
+Use a .json file to set the parameter of simulations
+* number_simulation:
+How many simulations to run, usually set to 1.
+* number_photons:
+How many photons in one simulaiton
+* number_layers:
+How many layer the tissue is
+* detector_reflectance:
+The reflectance rate of the detector.  If no reflectance, set to 0.
+* upper_n:
+The refractive index for upper layer outside the tissue
+* lower_n:
+The refractive index for lower layer outside the tissue
+* probes:
+The parameters for the fibers
+* source:
+Parameters for source fiber
+    * NA:
+Numerical aperture of source fiber
+    * radius:
+The radius of source fiber, in cm
+    * num_SDS:
+Number of detector fibers
+    * detectors:
+Parameters for detector fibers, shold be an array of the same size as "num_SDS"
+        * pos:
+The position (distance of the center of source fiber to the center of this detector fiber), in cm
+        * NA:
+Numerical aperture of this detector fiber
+        * radius:
+The radius of this detector fiber, in cm
+* Example:
 ```
 {
   "number_simulation": 1,
@@ -123,13 +123,13 @@ the radius of this detector fiber, in cm
 
 Set the optical parameters for each layer.
 
-#### Rules:
-* Each line for one simulation.
-* Arrange in "height(cm) mu_a(1/cm) mu_s(1/cm) n g" for one layer.
-* The last layer should have no height.
-* 5 parameters for 1 layer, so n layer should be 5n-1 columns.
-* The number of layers should be the same as "number_layers" in 
-#### Example:
+* Rules:
+    * Each line for one simulation.
+    * Arrange in "height(cm) mu_a(1/cm) mu_s(1/cm) n g" for one layer.
+    * The last layer should have no height.
+    * 5 parameters for 1 layer, so n layer should be 5n-1 columns.
+    * The number of layers should be the same as "number_layers" in 
+* Example:
 `0.27	0.3201	35.2861	1.4	0	0.65	0.2954	30.5833	1.4	0	0.2747	130.6813	1.4	0`
 This is a 3 layer tissue, parameters for each layer are setting as below:
 
@@ -153,17 +153,17 @@ The reflectance collected by each SDS.  One column is one SDS.
 <h3 id="summary_json">Summary.json</h3>
 
 Store the summary of this simulaiton.
-#### num_photon
-number of total simulated photon.
-#### sim_time
+* num_photon:
+Number of total simulated photon.
+* sim_time:
 The time cost to do the (first) simulate, in secs
-#### replay_time
+* replay_time:
 The time cost to do the second simulate and output the pathlength array, in secs
-#### sim_speed(photons/s)
+* sim_speed(photons/s):
 The average speed of simulation.
-#### each_photon_weight
+* each_photon_weight:
 The initial weight of each photon at launch, when calculate WMC, the **[photon detected weight](#PLSDS_txt)** should be divided by this number.
-#### SDS_detected_number
+* SDS_detected_number:
 The number of photon detected by each detector.  The number of elements is the same as **num_SDS** in [sim_set.json](#simset_json).
 
 ---
@@ -171,12 +171,12 @@ The number of photon detected by each detector.  The number of elements is the s
 <h3 id="PLSDS_txt">pathlength_SDS_#.txt or pathlength_SDS_#.bin</h3>
 
 The pathlength information for each photon collected by SDS #, can be used to perform White MC.
-#### Rules:
-Each row is one photon.
-The first column is the photon's weight when it been detected.
-The second column to the second-last columns are the photon's pathlength (cm) in each tissue layer.
-The last column is how many times did the photon scattered.
-#### Example:
+* Rules:
+    * Each row is one photon.
+    * The first column is the photon's weight when it been detected.
+    * The second column to the second-last columns are the photon's pathlength (cm) in each tissue layer.
+    * The last column is how many times did the photon scattered.
+* Example:
 ```
 7155930	0.164281	2.99355	4.65341	570
 6295.91	0.0202396	0.570237	0.312309	3036
@@ -186,14 +186,14 @@ The last column is how many times did the photon scattered.
 27530.4	0.106237	1.10873	1.53136	2460
 ```
 Those are 6 detected photon with properties below:
-| weight   | PL in L1 | PL in L2 | PL in L3 | scatter  |
-| -------- | -------- | -------- | -------- | -------- |
-| 7155930  | 0.164281 | 2.99355  | 4.65341  | 570      |
-| 6295.91  | 0.0202396| 0.570237 | 0.312309 | 3036     |
-| 827985   | 0.108664 | 2.41008  | 4.92397  | 1120     |
-| 325157   | 0.225788 | 1.57377  | 4.2767   | 873      |
-| 17125.5  | 0.0720376| 1.84378  | 2.97216  | 2504     |
-| 27530.4  | 0.106237 | 1.10873  | 1.53136  | 2460     |
+| weight   | PL in L1  | PL in L2 | PL in L3 | scatter  |
+| -------- | --------  | -------- | -------- | -------- |
+| 7155930  | 0.164281  | 2.99355  | 4.65341  | 570      |
+| 6295.91  | 0.0202396 | 0.570237 | 0.312309 | 3036     |
+| 827985   | 0.108664  | 2.41008  | 4.92397  | 1120     |
+| 325157   | 0.225788  | 1.57377  | 4.2767   | 873      |
+| 17125.5  | 0.0720376 | 1.84378  | 2.97216  | 2504     |
+| 27530.4  | 0.106237  | 1.10873  | 1.53136  | 2460     |
 
 ---
 
