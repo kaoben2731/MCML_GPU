@@ -109,7 +109,7 @@ void show_usage(string name)
 		// << "\t-W,\t\t Doing white Monte Carlo\n"
 		<< "\t-P,\t\t Output the pathlength for each photon, otherwise output the calculated average pathlength\n"
 		<< "\t-A,\t\t Calaulate and output the average pathlength\n"
-		<< "\t-B,\t\t output the pathlength file in binary format\n"
+		<< "\t-B,\t\t Output the pathlength file in binary format\n"
 		<< endl;
 }
 
