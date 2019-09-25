@@ -186,6 +186,7 @@ The pathlength information for each photon collected by SDS #, can be used to pe
 27530.4	0.106237	1.10873	1.53136	2460
 ```
 Those are 6 detected photon with properties below:
+
 | weight   | PL in L1  | PL in L2 | PL in L3 | scatter  |
 | -------- | --------  | -------- | -------- | -------- |
 | 7155930  | 0.164281  | 2.99355  | 4.65341  | 570      |
