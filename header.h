@@ -36,7 +36,7 @@ using namespace std;
 #define RPI                0.318309886f
 #define STR_LEN            200
 #define NORMAL             0                    // 1: normal, 0: oblique
-#define PRESET_NUM_DETECTOR 15 //(NORMAL ? 5:10)		//(NORMAL ? 4:9)       // normal: 4 fibers, oblique: 9 fibers
+#define PRESET_NUM_DETECTOR 30
 #define ANGLE              0   //(NORMAL ? 0:0)      // normal: 0 degree, oblique: 0 degree  by CY
 
 //#define NAOfSource         (NORMAL ? 0.37:0.37) // skin: (NORMAL ? 0.26:0.26)

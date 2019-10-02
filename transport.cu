@@ -28,6 +28,7 @@ __device__ unsigned int Reflect(PhotonStruct*, int, curandState* state);
 __device__ unsigned int PhotonSurvive(PhotonStruct*, curandState* state);
 __device__ void AtomicAddULL(unsigned long long* address, unsigned int add);
 __device__ bool detect(PhotonStruct* p, Fibers* f);
+__device__ bool detect_replay(PhotonStruct* p, Fibers* f, int detected_SDS);
 __device__ int binarySearch(float *data, float value);
 void fiber_initialization(Fibers* f);
 void fiber_initialization_replay(Fibers_Replay* f_r, SimulationStruct* sim);
@@ -134,8 +135,9 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, bool
 		sumStruc.total_SDS_detect_num[s] = total_SDS_detect_num[s];
 	}
 
+	output_fiber(simulation, reflectance, output);
+
 	if (!do_replay) { // only output the reflectance
-		output_fiber(simulation, reflectance, output);
 		output_sim_summary(simulation, sumStruc, do_replay);
 	}
 	else { // replay the detected photons
@@ -301,7 +303,8 @@ void calculate_reflectance_replay(Fibers_Replay* f_r, float *result, float ***pa
 		for (int l = 0; l < num_layers; l++) {
 			pathlength_weight_arr[SDS_should_be - 1][temp_SDS_detect_num[SDS_should_be - 1]][l + 1] = f_r[i].layer_pathlength[l];
 		}
-		pathlength_weight_arr[SDS_should_be - 1][temp_SDS_detect_num[SDS_should_be - 1]][num_layers + 1] = f_r[i].scatter_event;
+		//pathlength_weight_arr[SDS_should_be - 1][temp_SDS_detect_num[SDS_should_be - 1]][num_layers + 1] = f_r[i].scatter_event;
+		pathlength_weight_arr[SDS_should_be - 1][temp_SDS_detect_num[SDS_should_be - 1]][num_layers + 1] = f_r[i].detected_SDS_number; // debug
 				
 		temp_SDS_detect_num[SDS_should_be - 1]++;
 		if (temp_SDS_detect_num[SDS_should_be - 1] >= total_SDS_detect_num[SDS_should_be - 1]) { // if all the photons are replayed, then break
@@ -520,11 +523,14 @@ __global__ void MCd_replay(MemStruct DeviceMem, MemStruct_Replay DeviceMem_Repla
 				{
 					if (new_layer == 0)
 					{ //Diffuse reflectance
-						bool detected = detect(&p, &f);
+						bool detected = detect_replay(&p, &f, detected_SDS);
 						if (detected) { // store the photon information into f_r
 							f_r.have_detected = true;
 							f_r.data = f.data[0];
 							f_r.detected_SDS_number = f.detected_SDS_number[0];
+							//f_r.data = f.data[f.detected_photon_counter-1]; // debug
+							//f_r.detected_SDS_number = f.detected_SDS_number[f.detected_photon_counter - 1]; // debug
+							
 
 							p.weight = 0; // Set the remaining weight to 0, effectively killing the photon
 							break;
@@ -828,6 +834,45 @@ __device__ bool detect(PhotonStruct* p, Fibers* f)
 			}
 		}
 	}
+	if (detected_flag) {
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+
+// detected_SDS start from 0
+__device__ bool detect_replay(PhotonStruct* p, Fibers* f, int detected_SDS)
+{
+	float angle = ANGLE*PI / 180; //YU-modified
+	float uz_rotated = (p->dx*sin(angle)) + (p->dz*cos(angle)); //YU-modified
+	float uz_angle = acos(fabs(uz_rotated)); //YU-modified
+	float distance;
+	bool detected_flag = false;
+
+	distance = sqrt(p->x * p->x + p->y * p->y);
+
+	int i = detected_SDS + 1;
+
+	if (uz_angle <= critical_angle_dc[i]) { // successfully detected
+		if ((distance >= (detInfo_dc[i].position - detInfo_dc[i].raduis)) && (distance <= (detInfo_dc[i].position + detInfo_dc[i].raduis))) {
+			float temp;
+			temp = (distance*distance + detInfo_dc[i].position * detInfo_dc[i].position - detInfo_dc[i].raduis * detInfo_dc[i].raduis) / (2 * distance * detInfo_dc[i].position);
+			// check for rounding error!
+			if (temp > 1.0f)
+				temp = 1.0f;
+
+			if (f->detected_photon_counter < SDS_detected_temp_size) {
+				f->detected_SDS_number[f->detected_photon_counter] = i;
+				f->data[f->detected_photon_counter] = p->weight  * acos(temp) * RPI;
+				f->detected_state[f->detected_photon_counter] = p->state_seed;
+				f->detected_photon_counter++;
+			}
+			detected_flag = true;
+		}
+	}
+
 	if (detected_flag) {
 		return true;
 	}

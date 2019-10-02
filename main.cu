@@ -66,6 +66,14 @@ int main(int argc, char* argv[])
 
 	n_simulations = read_mua_mus(&simulations, argv[1], argv[2]); // read the input file
 
+	// debug
+	for (int s = 1; s <= simulations[0].num_detector; s++)
+	{
+		cout << simulations[0].detInfo[s].raduis << '\t';
+	}
+	cout << endl;
+	system("PAUSE");
+
 	if (n_simulations == 0)
 	{
 		printf("Something wrong with read_simulation_data!\n");
