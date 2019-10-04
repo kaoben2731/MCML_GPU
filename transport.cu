@@ -135,9 +135,8 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, bool
 		sumStruc.total_SDS_detect_num[s] = total_SDS_detect_num[s];
 	}
 
-	output_fiber(simulation, reflectance, output);
-
 	if (!do_replay) { // only output the reflectance
+		output_fiber(simulation, reflectance, output);
 		output_sim_summary(simulation, sumStruc, do_replay);
 	}
 	else { // replay the detected photons
@@ -303,8 +302,7 @@ void calculate_reflectance_replay(Fibers_Replay* f_r, float *result, float ***pa
 		for (int l = 0; l < num_layers; l++) {
 			pathlength_weight_arr[SDS_should_be - 1][temp_SDS_detect_num[SDS_should_be - 1]][l + 1] = f_r[i].layer_pathlength[l];
 		}
-		//pathlength_weight_arr[SDS_should_be - 1][temp_SDS_detect_num[SDS_should_be - 1]][num_layers + 1] = f_r[i].scatter_event;
-		pathlength_weight_arr[SDS_should_be - 1][temp_SDS_detect_num[SDS_should_be - 1]][num_layers + 1] = f_r[i].detected_SDS_number; // debug
+		pathlength_weight_arr[SDS_should_be - 1][temp_SDS_detect_num[SDS_should_be - 1]][num_layers + 1] = f_r[i].scatter_event;
 				
 		temp_SDS_detect_num[SDS_should_be - 1]++;
 		if (temp_SDS_detect_num[SDS_should_be - 1] >= total_SDS_detect_num[SDS_should_be - 1]) { // if all the photons are replayed, then break
@@ -528,10 +526,6 @@ __global__ void MCd_replay(MemStruct DeviceMem, MemStruct_Replay DeviceMem_Repla
 							f_r.have_detected = true;
 							f_r.data = f.data[0];
 							f_r.detected_SDS_number = f.detected_SDS_number[0];
-							//f_r.data = f.data[f.detected_photon_counter-1]; // debug
-							//f_r.detected_SDS_number = f.detected_SDS_number[f.detected_photon_counter - 1]; // debug
-							
-
 							p.weight = 0; // Set the remaining weight to 0, effectively killing the photon
 							break;
 						}
