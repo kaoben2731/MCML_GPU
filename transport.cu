@@ -55,7 +55,7 @@ __device__ float rn_gen(curandState *s)
 	return x;
 }
 
-void DoOneSimulation(SimulationStruct* simulation, int index, char* output, bool do_replay, bool output_each_pathlength, bool do_output_average_pathlength, bool do_output_bin)
+void DoOneSimulation(SimulationStruct* simulation, int index, char* output, bool do_replay, bool do_output_A_arr, bool output_each_pathlength, bool do_output_average_pathlength, bool do_output_bin)
 {
 	SummaryStruct sumStruc;
 	sumStruc.time1 = clock(); // tic
@@ -223,8 +223,10 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, bool
 		cudaMemcpy(HostMem_Replay.A_rz, DeviceMem_Replay.A_rz, simulation->num_detector * record_nr * record_nz * sizeof(unsigned long long), cudaMemcpyDeviceToHost);
 		cudaMemcpy(HostMem_Replay.A0_z, DeviceMem_Replay.A0_z, simulation->num_detector * record_nz * sizeof(unsigned long long), cudaMemcpyDeviceToHost);
 
-		output_A_rz(simulation, HostMem_Replay.A_rz); // output the absorbance
-		output_A0_z(simulation, HostMem_Replay.A0_z);
+		if (do_output_A_arr) {
+			output_A_rz(simulation, HostMem_Replay.A_rz); // output the absorbance
+			output_A0_z(simulation, HostMem_Replay.A0_z);
+		}
 
 		sumStruc.time3 = clock();
 		printf("finish replay, cost %.2f secs\n", (double)(sumStruc.time3 - sumStruc.time2) / CLOCKS_PER_SEC);

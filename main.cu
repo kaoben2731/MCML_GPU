@@ -9,7 +9,7 @@
 
 void FreeSimulationStruct(SimulationStruct* sim, int n_simulations);
 int read_mua_mus(SimulationStruct** simulations, char* sim_input, char* tissue_input);
-void DoOneSimulation(SimulationStruct* simulation, int index, char* output, bool do_replay, bool output_each_pathlength, bool do_output_average_pathlength, bool do_output_bin);
+void DoOneSimulation(SimulationStruct* simulation, int index, char* output, bool do_replay, bool do_output_A_arr, bool output_each_pathlength, bool do_output_average_pathlength, bool do_output_bin);
 void show_usage(string name);
 
 
@@ -25,6 +25,7 @@ int main(int argc, char* argv[])
 	}
 
 	bool do_replay = false;
+	bool do_output_A_arr = false;
 	bool output_each_pathlength = false;
 	bool do_output_average_pathlength = false;
 	bool do_output_bin = false;
@@ -37,10 +38,13 @@ int main(int argc, char* argv[])
 		else if (string(argv[i]) == "-R") {
 			do_replay = true;
 		}
+		else if (string(argv[i]) == "-A") {
+			do_output_A_arr = true;
+		}
 		else if (string(argv[i]) == "-P") {
 			output_each_pathlength = true;
 		}
-		else if (string(argv[i]) == "-A") {
+		else if (string(argv[i]) == "-AP") {
 			do_output_average_pathlength = true;
 		}
 		else if (string(argv[i]) == "-B") {
@@ -55,8 +59,12 @@ int main(int argc, char* argv[])
 		cout << "-P option only work with -R option!\n";
 		return 0;
 	}
-	if (do_output_average_pathlength && !do_replay) {
+	if (do_output_A_arr && !do_replay) {
 		cout << "-A option only work with -R option!\n";
+		return 0;
+	}
+	if (do_output_average_pathlength && !do_replay) {
+		cout << "-AP option only work with -R option!\n";
 		return 0;
 	}
 	if (do_output_bin && !output_each_pathlength) {
@@ -86,7 +94,7 @@ int main(int argc, char* argv[])
 	{
 		// Run a simulation
 		printf("simulating %d\n", i);
-		DoOneSimulation(&simulations[i], i, argv[3], do_replay, output_each_pathlength, do_output_average_pathlength, do_output_bin); //Wang modified
+		DoOneSimulation(&simulations[i], i, argv[3], do_replay, do_output_A_arr, output_each_pathlength, do_output_average_pathlength, do_output_bin); //Wang modified
 	}
 
 	time2 = clock();
@@ -107,8 +115,9 @@ void show_usage(string name)
 		<< "\t-h,--help\t Show this help message\n"
 		<< "\t-R,\t\t Replay the detected photon after first simulation\n"
 		// << "\t-W,\t\t Doing white Monte Carlo\n"
+		<< "\t-A,\t\t Output the absorbance array\n"
 		<< "\t-P,\t\t Output the pathlength for each photon, otherwise output the calculated average pathlength\n"
-		<< "\t-A,\t\t Calaulate and output the average pathlength\n"
+		<< "\t-AP,\t\t Calaulate and output the average pathlength\n"
 		<< "\t-B,\t\t Output the pathlength file in binary format\n"
 		<< endl;
 }

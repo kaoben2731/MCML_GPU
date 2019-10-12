@@ -29,6 +29,8 @@ using namespace std;
 #endif
 
 
+#define MCML_VERSION 1.01
+
 #define NUM_LAYER 5
 #define PRESET_NUM_LAYER 10
 #define NUMSTEPS_GPU       50000
