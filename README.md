@@ -25,24 +25,24 @@ the MCML with cuda acceleration which modified by Benjamin Kao and have many pur
 
 Use this command to run this program:    
 `./MCML_GPU sim_set.json input.txt output.txt <option(s)>`
-* [sim_set.json](#simset_json)
+* [`sim_set.json`](#simset_json)
 A .json file for setting parameters.
-* [input.txt](#input_txt)
+* [`input.txt`](#input_txt)
 The input file to set optical parameters for each layer.
-* [output.txt](#output_txt)
+* [`output.txt`](#output_txt)
 The output filename for reflectance.
 * options
-    * -h
+    * `-h`
 Print the helping information.
-    * -R
+    * `-R`
 Replay the detected photons after first simulation, to get the pathlength in each layer or absorbance matrix.
-	* -A
+	* `-A`
 Output the absorbance array for each detector in [A_rz_SDS_#.txt](#arz_txt) and [A0_z_SDS_#.txt](#a0z_txt).
-    * -P
+    * `-P`
 Output the pathlength for each photon in [pathlength_SDS_#.txt](#PLSDS_txt), otherwise output the calculated average pathlength in [average_pathlength.txt](#avg_PL_txt).
-    * -AP
+    * `-AP`
 Calaulate and output the average pathlength.
-    * -B
+    * `-B`
 Output the pathlength file in binary format for faster speed.
 
 
@@ -228,5 +228,5 @@ Those are 6 detected photon with properties below:
 
 ### K1.01
 
-* Add the -A option to control output absorbance array.
-* Change the original -A (average pathlength) option to -AP
+* Add the `-A` option to control output absorbance array.
+* Change the original `-A` (average pathlength) option to `-AP`
