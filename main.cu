@@ -11,7 +11,7 @@ void FreeSimulationStruct(SimulationStruct* sim, int n_simulations);
 int read_mua_mus(SimulationStruct** simulations, char* sim_input, char* tissue_input);
 void DoOneSimulation(SimulationStruct* simulation, int index, char* output, bool do_replay, bool do_output_A_arr, bool output_each_pathlength, bool do_output_average_pathlength, bool do_output_bin);
 void show_usage(string name);
-
+void print_MCML_information();
 
 int main(int argc, char* argv[])
 {
@@ -90,6 +90,7 @@ int main(int argc, char* argv[])
 	time1 = clock();
 
 	//perform all the simulations
+	print_MCML_information();
 	for (int i = 0; i < n_simulations; i++)
 	{
 		// Run a simulation
@@ -130,4 +131,12 @@ void FreeSimulationStruct(SimulationStruct* sim, int n_simulations)
 		free(sim[i].critical_arr);
 	}
 	free(sim);
+}
+
+void print_MCML_information()
+{
+	cout << "******************************" << endl;
+	cout << "*       MCML_GPU K"<< MCML_VERSION <<"       *" << endl;
+	cout << "*         "<< Last_Update_Date <<"         *" << endl;
+	cout << "******************************" << endl;
 }

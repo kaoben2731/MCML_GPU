@@ -316,6 +316,7 @@ void output_sim_summary(SimulationStruct* simulation, SummaryStruct sumStruc, bo
 	ofstream myfile;
 	myfile.open("summary.json", ios::app);
 	myfile << "{\n";
+	myfile << "\"MCML_version\": K" << MCML_VERSION << ",\n";
 	myfile << "\"num_photon\": " << sumStruc.number_of_photons << ",\n";
 	myfile << "\"sim_time\": " << (double)(sumStruc.time2 - sumStruc.time1) / CLOCKS_PER_SEC << ",\n";
 	if (do_replay) {

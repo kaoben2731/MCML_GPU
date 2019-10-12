@@ -17,6 +17,7 @@ the MCML with cuda acceleration which modified by Benjamin Kao and have many pur
 * [A_rz_SDS_#.txt](#arz_txt)
 * [A0_z_SDS_#.txt](#a0z_txt)
 * [average_pathlength.txt](#avg_PL_txt)
+* [Update History](#update_history)
 
 ---
 
@@ -25,23 +26,24 @@ the MCML with cuda acceleration which modified by Benjamin Kao and have many pur
 Use this command to run this program:    
 `./MCML_GPU sim_set.json input.txt output.txt <option(s)>`
 * [sim_set.json](#simset_json)
-A .json file for setting parameters
+A .json file for setting parameters.
 * [input.txt](#input_txt)
-The input file to set optical parameters for each layer
+The input file to set optical parameters for each layer.
 * [output.txt](#output_txt)
-The output filename for reflectance
+The output filename for reflectance.
 * options
     * -h
-Print the helping information
+Print the helping information.
     * -R
 Replay the detected photons after first simulation, to get the pathlength in each layer or absorbance matrix.
-With this option, there will be output of [A_rz_SDS_#.txt](#arz_txt) and [A0_z_SDS_#.txt](#a0z_txt)
+	* -A
+Output the absorbance array for each detector in [A_rz_SDS_#.txt](#arz_txt) and [A0_z_SDS_#.txt](#a0z_txt).
     * -P
-Output the pathlength for each photon in [pathlength_SDS_#.txt](#PLSDS_txt), otherwise output the calculated average pathlength in [average_pathlength.txt](#avg_PL_txt)
-    * -A
-Calaulate and output the average pathlength
+Output the pathlength for each photon in [pathlength_SDS_#.txt](#PLSDS_txt), otherwise output the calculated average pathlength in [average_pathlength.txt](#avg_PL_txt).
+    * -AP
+Calaulate and output the average pathlength.
     * -B
-Output the pathlength file in binary format for faster speed
+Output the pathlength file in binary format for faster speed.
 
 
 ---
@@ -217,3 +219,14 @@ Those are 6 detected photon with properties below:
 * The average pathlength (cm) for each detector in each layer.
 * Start from the PL in 1st layer for 1st detector, in 2nd layer for 1st detector......
 * If there are 4 detectors and 5 layers of tissue, than there will be 20 columns.
+
+---
+
+<h2 id="update_history">Update History</h2>
+
+---
+
+### K1.01
+
+* Add the -A option to control output absorbance array.
+* Change the original -A (average pathlength) option to -AP

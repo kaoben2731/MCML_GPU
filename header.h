@@ -29,7 +29,8 @@ using namespace std;
 #endif
 
 
-#define MCML_VERSION 1.01
+#define MCML_VERSION "1.01"
+#define Last_Update_Date "2019/10/12"
 
 #define NUM_LAYER 5
 #define PRESET_NUM_LAYER 10
