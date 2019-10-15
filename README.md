@@ -228,5 +228,6 @@ Those are 6 detected photon with properties below:
 
 ### K1.01
 
+* updata: 2019/10/12
 * Add the `-A` option to control output absorbance array.
 * Change the original `-A` (average pathlength) option to `-AP`
