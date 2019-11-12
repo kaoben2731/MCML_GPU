@@ -148,14 +148,16 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
+      <AdditionalOptions>-std=c++11 %(AdditionalOptions)</AdditionalOptions>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="header.h" />
+    <ClInclude Include="json.hpp" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="fiber.cu" />
-    <CudaCompile Include="io.cu" />
+    <CudaCompile Include="io.cpp" />
     <CudaCompile Include="main.cu" />
     <CudaCompile Include="transport.cu" />
   </ItemGroup>

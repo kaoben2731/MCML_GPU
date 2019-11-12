@@ -14,46 +14,50 @@ using namespace std;
 
 // DEFINES 
 #define NUM_BLOCKS 5*16//20*16 //5*16 //dimGrid //Keep numblocks a multiple of the #MP's of the GPU (8800GT=14MP)
+// MP= multiprocessor, 1080=20MP, 1080ti=28MP
 
 //The register usage varies with platform. 64-bit Linux and 32.bit Windows XP have been tested.
 #ifdef __linux__ //uses 25 registers per thread (64-bit)
-#define NUM_THREADS_PER_BLOCK 320 //Keep above 192 to eliminate global memory access overhead However, keep low to allow enough registers per thread
-#define NUM_THREADS 17920
-#endif
-
-#ifdef _WIN64
+#define NUM_THREADS_PER_BLOCK 256 //Keep above 192 to eliminate global memory access overhead However, keep low to allow enough registers per thread
+#define NUM_THREADS NUM_BLOCKS*NUM_THREADS_PER_BLOCK
+#elif _WIN64
 #define NUM_THREADS_PER_BLOCK 256  //256 //dimBlock
 #define NUM_THREADS NUM_BLOCKS*NUM_THREADS_PER_BLOCK
 #else //uses 26 registers per thread
 #define NUM_THREADS_PER_BLOCK 288 //Keep above 192 to eliminate global memory access overhead However, keep low to allow enough registers per thread
-#define NUM_THREADS 16128   
+#define NUM_THREADS NUM_BLOCKS*NUM_THREADS_PER_BLOCK   
 #endif
 
 
-#define NUM_LAYER 6
+#define MCML_VERSION "1.01"
+#define Last_Update_Date "2019/10/12"
 
-#define NUMSTEPS_GPU       6000
+#define NUM_LAYER 5
+#define PRESET_NUM_LAYER 10
+#define NUMSTEPS_GPU       50000
 #define PI                 3.141592654f
 #define RPI                0.318309886f
-#define MAX_LAYERS         100
 #define STR_LEN            200
 #define NORMAL             0                    // 1: normal, 0: oblique
-#define NUM_OF_DETECTOR    (NORMAL ? 5:5) //(NORMAL ? 5:10)		//(NORMAL ? 4:9)       // normal: 4 fibers, oblique: 9 fibers
-//#define ANGLE              (NORMAL ? 0:45)      // normal: 0 degree, oblique: 45 degree  
-#define ANGLE              (NORMAL ? 0:0)      // normal: 0 degree, oblique: 0 degree  by CY
+#define PRESET_NUM_DETECTOR 30
+#define ANGLE              0   //(NORMAL ? 0:0)      // normal: 0 degree, oblique: 0 degree  by CY
 
-#define NAOfSource         (NORMAL ? 0.37:0.37)//(NORMAL ? 0.4:0.37)//(NORMAL ? 0.4:0.26)//(NORMAL ? 0.4:0.12)  // normal: 0.4, oblique; 0.22
-#define NAOfDetector       (NORMAL ? 0.12:0.12)//(NORMAL ? 0.4:0.26)//(NORMAL ? 0.4:0.12)  // normal: 0.4, oblique; 0.22
+//#define NAOfSource         (NORMAL ? 0.37:0.37) // skin: (NORMAL ? 0.26:0.26)
+//#define NAOfDetector       (NORMAL ? 0.12:0.12) // skin: (NORMAL ? 0.26:0.26)
 #define n_detector         1.457//1.457//1.457//1.457 -fiber//1.61 //YU-modified
 #define n_source           1.457//1.457//1.457//1.61 //YU-modified
-#define illumination_r     0.075//0.075		//radius //Wang-modified //skin:0.025  IJV:0.075
-#define collect_r          0.02//0.02//0.025//0.02			//radius //Wang-modified //skin:0.025  IJV:0.02
-#define NUMBER_PHOTONS     1000000000//1000000000//50000000//400000000 -skin
-#define NUMBER_SIMULATION  1//42//31//54//36  //IJV:36 skin:4
+//#define illumination_r     0.075 //0.075		//radius //Wang-modified //skin:0.025  IJV:0.075
+//#define collect_r          0.015 // skin: 0.01
+//#define NUMBER_PHOTONS     50000000 //1000000000//50000000//400000000 -skin
+//#define NUMBER_SIMULATION  1//42//31//54//36  //IJV:36 skin:4
 
 //#define WEIGHT 0.0001f
 #define WEIGHTI 429497u //0xFFFFFFFFu*WEIGHT
 #define CHANCE 0.1f
+
+#define detected_temp_size 7000 //number of photon should be detected
+#define SDS_detected_temp_size 20
+#define max_scatter_time 10000 // the max times a photon can scatter, if larger than this value, the weight will be too small, and don't need to continue simulate it
 
 // define the absorbance array
 #define record_dr 0.01f
@@ -61,6 +65,8 @@ using namespace std;
 #define record_nr 1000
 #define record_nz 500
 
+// define the percentage of change mua to calculate average pathlength
+#define mua_change_ratio 0.001 // 0.1%
 
 // TYPEDEFS
 typedef struct __align__(16)
@@ -84,24 +90,49 @@ typedef struct __align__(16)
 	float weight;			// Photon weight
 	int layer;				// Current layer
 	bool first_scatter; // flag of first scatter
+	int scatter_event; // record howmany time the photon had been scattered
+
+	curandState state_seed; // store the initial curandState for the photon
+	curandState state_run; // store the current state of curand
+
 }PhotonStruct;
 
 typedef struct
 {
+	float raduis;
+	float NA;
+	float position;
+	float angle;
+}DetectorInfoStruct;
+
+typedef struct
+{
 	unsigned long long number_of_photons;
-	unsigned int n_layers;
+	unsigned int num_layers;
+	unsigned int num_detector;
 	float start_weight;
+	float detector_reflectance; // the reflectance change of detector
 	LayerStruct* layers;
+	DetectorInfoStruct* detInfo;
+	float* critical_arr; // the array for critical angle for each detector
 }SimulationStruct;
 
 typedef struct
 {
-	float radius[18];	//float radius[13];		//YU-modified
-	float NA[18];		//float NA[13];			//YU-modified
-	float position[18];	//float position[13];	//YU-modified
-	float angle[18];	//float angle[13];		//YU-modified
-	float data[18];		//float data[13];		//YU-modified
+	int detected_photon_counter; // record how many photon had been detected by this fiber in one iteration, should not exceed SDS_detected_temp_size
+	float data[SDS_detected_temp_size]; // the photon weight detected by this probe
+	int detected_SDS_number[SDS_detected_temp_size]; // record which SDS detected the photon
+	curandState detected_state[SDS_detected_temp_size]; // store the initial state of detected photons
 }Fibers;
+
+typedef struct
+{
+	bool have_detected;
+	float data; // the photon weight detected by this probe
+	float layer_pathlength[PRESET_NUM_LAYER]; // record the pathlength in each layer for detected photon
+	int scatter_event; // record howmany time the photon had been scattered
+	int detected_SDS_number; // record which SDS detected the photon
+}Fibers_Replay;
 
 typedef struct
 {
@@ -110,10 +141,15 @@ typedef struct
 	unsigned int* thread_active;		// Pointer to the array containing the thread active status
 	unsigned long long* num_terminated_photons;	//Pointer to a scalar keeping track of the number of terminated photons
 	curandState*  state;
+}MemStruct;
+
+typedef struct // additional data structure for record fluence rate, pathlength
+{
+	Fibers_Replay* f_r;
 
 	unsigned long long* A_rz;			// array to store absorbance, a nz by nr array
 	unsigned long long* A0_z;			// array to store the first scatter absorbance
-}MemStruct;
+}MemStruct_Replay;
 
 typedef struct
 {
@@ -122,8 +158,19 @@ typedef struct
 	float* cumf;
 }G_Array;
 
+typedef struct
+{
+	clock_t time1, time2, time3;
+	int* total_SDS_detect_num;
+	unsigned long long number_of_photons;
+}SummaryStruct;
+
 
 __device__ __constant__ unsigned long long num_photons_dc[1];
 __device__ __constant__ unsigned int n_layers_dc[1];
+__device__ __constant__ unsigned int num_detector_dc[1];
 __device__ __constant__ float start_weight_dc[1];
-__device__ __constant__ LayerStruct layers_dc[MAX_LAYERS];
+__device__ __constant__ float detector_reflectance_dc[1];
+__device__ __constant__ LayerStruct layers_dc[PRESET_NUM_LAYER + 2];
+__device__ __constant__ DetectorInfoStruct detInfo_dc[PRESET_NUM_DETECTOR + 1];
+__device__ __constant__ float critical_angle_dc[PRESET_NUM_DETECTOR + 1];
