@@ -112,6 +112,8 @@ typedef struct
 	unsigned int num_detector;
 	float start_weight;
 	float detector_reflectance; // the reflectance change of detector
+	bool source_probe_oblique; // if the source probe is oblique
+	bool detector_probe_oblique; // if the detector probes are oblique
 	LayerStruct* layers;
 	DetectorInfoStruct* detInfo;
 	float* critical_arr; // the array for critical angle for each detector
