@@ -903,6 +903,12 @@ int InitDCMem(SimulationStruct* sim)
 	// Copy detector critical angles to constant device memory
 	cudaMemcpyToSymbol(critical_angle_dc, sim->critical_arr, (sim->num_detector + 1) * sizeof(float));
 	
+	// Copy source probe oblique to constant device memory
+	cudaMemcpyToSymbol(source_probe_oblique_dc, &(sim->source_probe_oblique), sizeof(bool));
+	
+	// Copy detector probe oblique to constant device memory
+	cudaMemcpyToSymbol(detector_probe_oblique_dc, &(sim->detector_probe_oblique), sizeof(bool));
+
 
 	return 0;
 }

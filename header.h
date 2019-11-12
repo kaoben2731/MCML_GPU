@@ -40,7 +40,7 @@ using namespace std;
 #define STR_LEN            200
 #define NORMAL             0                    // 1: normal, 0: oblique
 #define PRESET_NUM_DETECTOR 30
-#define ANGLE              0   //(NORMAL ? 0:0)      // normal: 0 degree, oblique: 0 degree  by CY
+//#define ANGLE              0   //(NORMAL ? 0:0)      // normal: 0 degree, oblique: 0 degree  by CY
 
 //#define NAOfSource         (NORMAL ? 0.37:0.37) // skin: (NORMAL ? 0.26:0.26)
 //#define NAOfDetector       (NORMAL ? 0.12:0.12) // skin: (NORMAL ? 0.26:0.26)
@@ -176,3 +176,5 @@ __device__ __constant__ float detector_reflectance_dc[1];
 __device__ __constant__ LayerStruct layers_dc[PRESET_NUM_LAYER + 2];
 __device__ __constant__ DetectorInfoStruct detInfo_dc[PRESET_NUM_DETECTOR + 1];
 __device__ __constant__ float critical_angle_dc[PRESET_NUM_DETECTOR + 1];
+__device__ __constant__ bool source_probe_oblique_dc[1];
+__device__ __constant__ bool detector_probe_oblique_dc[1];
