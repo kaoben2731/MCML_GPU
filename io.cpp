@@ -49,6 +49,36 @@ int read_mua_mus(SimulationStruct** simulations, char* sim_input, char* tissue_i
 	const int n_simulations = sim_input_struct["number_simulation"];
 	//const int n_simulations =1;
 
+	bool source_probe_oblique;
+	if (sim_input_struct["source_probe_oblique"] == 1)
+	{
+		source_probe_oblique = true;
+	}
+	else if(sim_input_struct["source_probe_oblique"] == 0)
+	{
+		source_probe_oblique = false;
+	}
+	else
+	{
+		cout << "source_probe_oblique: " << sim_input_struct["source_probe_oblique"] << "is not 1 or 0!\n";
+		return 0;
+	}
+
+	bool detector_probe_oblique;
+	if (sim_input_struct["detector_probe_oblique"] == 1)
+	{
+		detector_probe_oblique = true;
+	}
+	else if (sim_input_struct["detector_probe_oblique"] == 0)
+	{
+		detector_probe_oblique = false;
+	}
+	else
+	{
+		cout << "detector_probe_oblique: " << sim_input_struct["detector_probe_oblique"] << "is not 1 or 0!\n";
+		return 0;
+	}
+
 	double detector_reflectance = sim_input_struct["detector_reflectance"];
 	if (detector_reflectance < 0 || detector_reflectance>1) {
 		cout << "Detector reflectance: " << detector_reflectance << " is out of range !\n";
@@ -137,6 +167,9 @@ int read_mua_mus(SimulationStruct** simulations, char* sim_input, char* tissue_i
 
 	for (int i = 0; i < n_simulations; i++)
 	{
+		(*simulations)[i].source_probe_oblique = source_probe_oblique;
+		(*simulations)[i].detector_probe_oblique = detector_probe_oblique;
+
 		(*simulations)[i].number_of_photons = number_of_photons;
 		(*simulations)[i].num_layers = n_layers;
 		(*simulations)[i].num_detector = num_detector;
