@@ -822,7 +822,7 @@ __device__ bool detect(PhotonStruct* p, Fibers* f)
 			// check if the photon is in the range of detector
 			// because the detector is oblique, so the detection area is oval
 			// use fober detector rathter than ring detector, and each detector locate at (x,y) = (pos,0)
-			if ((pow((p->x - detInfo_dc[i].position)*cos(detInfo_dc[i].angle), 2) + pow(p->y, 2)) < pow(detInfo_dc[i].raduis, 2))
+			if ((pow((p->x - detInfo_dc[i].position)*cos(detInfo_dc[i].angle), 2) + pow(p->y, 2)) <= pow(detInfo_dc[i].raduis, 2))
 			{
 				// let the detector point to the -x direction
 				float uz_rotated = (p->dx*sin(detInfo_dc[i].angle)) + (p->dz*cos(detInfo_dc[i].angle));
@@ -890,7 +890,7 @@ __device__ bool detect_replay(PhotonStruct* p, Fibers* f, int detected_SDS)
 		// check if the photon is in the range of detector
 		// because the detector is oblique, so the detection area is oval
 		// use fober detector rathter than ring detector, and each detector locate at (x,y) = (pos,0)
-		if ((pow((p->x - detInfo_dc[i].position)*cos(detInfo_dc[i].angle), 2) + pow(p->y, 2)) < pow(detInfo_dc[i].raduis, 2))
+		if ((pow((p->x - detInfo_dc[i].position)*cos(detInfo_dc[i].angle), 2) + pow(p->y, 2)) <= pow(detInfo_dc[i].raduis, 2))
 		{
 			// let the detector point to the -x direction
 			float uz_rotated = (p->dx*sin(detInfo_dc[i].angle)) + (p->dz*cos(detInfo_dc[i].angle));

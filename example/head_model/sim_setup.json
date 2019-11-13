@@ -1,6 +1,6 @@
 {
   "number_simulation": 1,
-  "number_photons": 10000000,
+  "number_photons": 100000000,
   "number_layers": 5,
   "detector_reflectance": 0.0,
   "upper_n": 1.457,
