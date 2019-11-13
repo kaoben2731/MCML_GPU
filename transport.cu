@@ -825,7 +825,7 @@ __device__ bool detect(PhotonStruct* p, Fibers* f)
 			if ((pow((p->x - detInfo_dc[i].position)*cos(detInfo_dc[i].angle), 2) + pow(p->y, 2)) <= pow(detInfo_dc[i].raduis, 2))
 			{
 				// let the detector point to the -x direction
-				float uz_rotated = (p->dx*sin(detInfo_dc[i].angle)) + (p->dz*cos(detInfo_dc[i].angle));
+				float uz_rotated = (p->dx*sin(detInfo_dc[i].angle)) + fabs(p->dz*cos(detInfo_dc[i].angle));
 				float uz_angle = acos(fabs(uz_rotated));
 				if (uz_angle <= critical_angle_dc[i]) // in the range of detector NA
 				{
