@@ -643,7 +643,18 @@ __device__ void LaunchPhoton(PhotonStruct* p, curandState *state)
 	//uzprime = sin(angle)*p->dx + cos(angle)*p->dz; // YU-modified
 
 	//p->dx = uxprime, p->dy = uyprime, p->dz = uzprime;
-	p->dx = 0.0, p->dy = 0.0, p->dz = 1.0;
+
+	if (*source_probe_oblique_dc)
+	{
+		// the angle is toward positive x-axis
+		p->dx = 1.0*sin(detInfo_dc[0].angle);
+		p->dy = 0.0;
+		p->dz = 1.0*cos(detInfo_dc[0].angle);
+	}
+	else // if source_probe_oblique_dc == false
+	{
+		p->dx = 0.0, p->dy = 0.0, p->dz = 1.0;
+	}
 
 	p->layer = 1;
 	p->first_scatter = true;
@@ -802,16 +813,107 @@ __device__ unsigned int PhotonSurvive(PhotonStruct* p, curandState *state)
 
 __device__ bool detect(PhotonStruct* p, Fibers* f)
 {
-	float angle = ANGLE*PI / 180; //YU-modified
-	float uz_rotated = (p->dx*sin(angle)) + (p->dz*cos(angle)); //YU-modified
-	float uz_angle = acos(fabs(uz_rotated)); //YU-modified
-	float distance;
-	bool detected_flag=false;
+	bool detected_flag = false;
 
-	distance = sqrt(p->x * p->x + p->y * p->y);
-	
-	for (int i = 1; i <= *num_detector_dc; i++)
+	if (*detector_probe_oblique_dc)
 	{
+		for (int i = 1; i <= *num_detector_dc; i++)
+		{
+			// check if the photon is in the range of detector
+			// because the detector is oblique, so the detection area is oval
+			// use fober detector rathter than ring detector, and each detector locate at (x,y) = (pos,0)
+			if ((pow((p->x - detInfo_dc[i].position)*cos(detInfo_dc[i].angle), 2) + pow(p->y, 2)) < pow(detInfo_dc[i].raduis, 2))
+			{
+				// let the detector point to the -x direction
+				float uz_rotated = (p->dx*sin(detInfo_dc[i].angle)) + (p->dz*cos(detInfo_dc[i].angle));
+				float uz_angle = acos(fabs(uz_rotated));
+				if (uz_angle <= critical_angle_dc[i]) // in the range of detector NA
+				{
+					if (f->detected_photon_counter < SDS_detected_temp_size) {
+						f->detected_SDS_number[f->detected_photon_counter] = i;
+						f->data[f->detected_photon_counter] = p->weight;
+						f->detected_state[f->detected_photon_counter] = p->state_seed;
+						f->detected_photon_counter++;
+					}
+					detected_flag = true;
+				}
+			}
+
+		}
+	}
+	else // detector_probe_oblique_dc == false
+	{
+		float uz_angle = acos(fabs(p->dz)); //YU-modified
+		float distance;
+
+		distance = sqrt(p->x * p->x + p->y * p->y);
+
+		for (int i = 1; i <= *num_detector_dc; i++)
+		{
+			if (uz_angle <= critical_angle_dc[i]) { // successfully detected
+				if ((distance >= (detInfo_dc[i].position - detInfo_dc[i].raduis)) && (distance <= (detInfo_dc[i].position + detInfo_dc[i].raduis))) {
+					// calculate the weight detected by ring detector into a fiber detector
+					float temp;
+					temp = (distance*distance + detInfo_dc[i].position * detInfo_dc[i].position - detInfo_dc[i].raduis * detInfo_dc[i].raduis) / (2 * distance * detInfo_dc[i].position);
+					// check for rounding error!
+					if (temp > 1.0f)
+						temp = 1.0f;
+
+					if (f->detected_photon_counter < SDS_detected_temp_size) {
+						f->detected_SDS_number[f->detected_photon_counter] = i;
+						f->data[f->detected_photon_counter] = p->weight  * acos(temp) * RPI;
+						f->detected_state[f->detected_photon_counter] = p->state_seed;
+						f->detected_photon_counter++;
+					}
+					detected_flag = true;
+				}
+			}
+		}
+	}
+
+	if (detected_flag) {
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+
+// detected_SDS start from 0
+__device__ bool detect_replay(PhotonStruct* p, Fibers* f, int detected_SDS)
+{
+	int i = detected_SDS + 1;
+	bool detected_flag = false;
+
+	if (*detector_probe_oblique_dc)
+	{
+		// check if the photon is in the range of detector
+		// because the detector is oblique, so the detection area is oval
+		// use fober detector rathter than ring detector, and each detector locate at (x,y) = (pos,0)
+		if ((pow((p->x - detInfo_dc[i].position)*cos(detInfo_dc[i].angle), 2) + pow(p->y, 2)) < pow(detInfo_dc[i].raduis, 2))
+		{
+			// let the detector point to the -x direction
+			float uz_rotated = (p->dx*sin(detInfo_dc[i].angle)) + (p->dz*cos(detInfo_dc[i].angle));
+			float uz_angle = acos(fabs(uz_rotated));
+			if (uz_angle <= critical_angle_dc[i]) // in the range of detector NA
+			{
+				if (f->detected_photon_counter < SDS_detected_temp_size) {
+					f->detected_SDS_number[f->detected_photon_counter] = i;
+					f->data[f->detected_photon_counter] = p->weight;
+					f->detected_state[f->detected_photon_counter] = p->state_seed;
+					f->detected_photon_counter++;
+				}
+				detected_flag = true;
+			}
+		}
+	}
+	else
+	{
+		float uz_angle = acos(fabs(p->dz));
+		float distance;
+
+		distance = sqrt(p->x * p->x + p->y * p->y);
+
 		if (uz_angle <= critical_angle_dc[i]) { // successfully detected
 			if ((distance >= (detInfo_dc[i].position - detInfo_dc[i].raduis)) && (distance <= (detInfo_dc[i].position + detInfo_dc[i].raduis))) {
 				float temp;
@@ -828,44 +930,6 @@ __device__ bool detect(PhotonStruct* p, Fibers* f)
 				}
 				detected_flag = true;
 			}
-		}
-	}
-	if (detected_flag) {
-		return true;
-	}
-	else {
-		return false;
-	}
-}
-
-// detected_SDS start from 0
-__device__ bool detect_replay(PhotonStruct* p, Fibers* f, int detected_SDS)
-{
-	float angle = ANGLE*PI / 180; //YU-modified
-	float uz_rotated = (p->dx*sin(angle)) + (p->dz*cos(angle)); //YU-modified
-	float uz_angle = acos(fabs(uz_rotated)); //YU-modified
-	float distance;
-	bool detected_flag = false;
-
-	distance = sqrt(p->x * p->x + p->y * p->y);
-
-	int i = detected_SDS + 1;
-
-	if (uz_angle <= critical_angle_dc[i]) { // successfully detected
-		if ((distance >= (detInfo_dc[i].position - detInfo_dc[i].raduis)) && (distance <= (detInfo_dc[i].position + detInfo_dc[i].raduis))) {
-			float temp;
-			temp = (distance*distance + detInfo_dc[i].position * detInfo_dc[i].position - detInfo_dc[i].raduis * detInfo_dc[i].raduis) / (2 * distance * detInfo_dc[i].position);
-			// check for rounding error!
-			if (temp > 1.0f)
-				temp = 1.0f;
-
-			if (f->detected_photon_counter < SDS_detected_temp_size) {
-				f->detected_SDS_number[f->detected_photon_counter] = i;
-				f->data[f->detected_photon_counter] = p->weight  * acos(temp) * RPI;
-				f->detected_state[f->detected_photon_counter] = p->state_seed;
-				f->detected_photon_counter++;
-			}
-			detected_flag = true;
 		}
 	}
 
@@ -908,7 +972,6 @@ int InitDCMem(SimulationStruct* sim)
 	
 	// Copy detector probe oblique to constant device memory
 	cudaMemcpyToSymbol(detector_probe_oblique_dc, &(sim->detector_probe_oblique), sizeof(bool));
-
 
 	return 0;
 }
