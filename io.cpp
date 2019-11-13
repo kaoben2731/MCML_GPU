@@ -192,7 +192,8 @@ int read_mua_mus(SimulationStruct** simulations, char* sim_input, char* tissue_i
 		// presetting critical angle for detectors
 		(*simulations)->critical_arr = new float[num_detector + 1];
 		for (int d = 1; d <= num_detector; d++) {
-			(*simulations)->critical_arr[d] = asin((*simulations)[i].detInfo[d].NA / n_detector);
+			//(*simulations)->critical_arr[d] = asin((*simulations)[i].detInfo[d].NA / n_detector);
+			(*simulations)->critical_arr[d] = asin((*simulations)[i].detInfo[d].NA / upper_n);
 		}
 
 		// Allocate memory for the layers (including one for the upper and one for the lower)

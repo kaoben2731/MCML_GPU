@@ -44,7 +44,7 @@ using namespace std;
 
 //#define NAOfSource         (NORMAL ? 0.37:0.37) // skin: (NORMAL ? 0.26:0.26)
 //#define NAOfDetector       (NORMAL ? 0.12:0.12) // skin: (NORMAL ? 0.26:0.26)
-#define n_detector         1.457//1.457//1.457//1.457 -fiber//1.61 //YU-modified
+#define n_detector         1.457 // for now, the value is not use, and detector n is set to the value of upper_n
 #define n_source           1.457//1.457//1.457//1.61 //YU-modified
 //#define illumination_r     0.075 //0.075		//radius //Wang-modified //skin:0.025  IJV:0.075
 //#define collect_r          0.015 // skin: 0.01
