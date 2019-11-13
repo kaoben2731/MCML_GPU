@@ -10,24 +10,28 @@
   "probes": {
     "source": {
       "NA": 0.37,
-      "radius": 0.075
+      "radius": 0.075,
+      "angle": 0
     },
     "num_SDS": 3,
     "detectors": [
       {
         "pos": 0.8,
         "NA": 0.13,
-        "radius": 0.001
+        "radius": 0.001,
+        "angle": 0
       },
       {
         "pos": 1.5,
         "NA": 0.12,
-        "radius": 0.02
+        "radius": 0.02,
+        "angle": 0
       },
       {
         "pos": 3.0,
         "NA": 0.12,
-        "radius": 0.02
+        "radius": 0.02,
+        "angle": 0
       }
     ]
   }
