@@ -181,13 +181,13 @@ int read_mua_mus(SimulationStruct** simulations, char* sim_input, char* tissue_i
 		(*simulations)[i].detInfo[0].NA = sim_input_struct["probes"]["source"]["NA"];
 		(*simulations)[i].detInfo[0].raduis = sim_input_struct["probes"]["source"]["radius"];
 		(*simulations)[i].detInfo[0].position = 0;
-		(*simulations)[i].detInfo[0].angle = sim_input_struct["probes"]["source"]["angle"] * PI / 180;
+		(*simulations)[i].detInfo[0].angle = float(sim_input_struct["probes"]["source"]["angle"]) * PI / 180;
 		// for detector
 		for (int d = 0; d < num_detector; d++) {
 			(*simulations)[i].detInfo[d + 1].NA = sim_input_struct["probes"]["detectors"][d]["NA"];
 			(*simulations)[i].detInfo[d + 1].raduis = sim_input_struct["probes"]["detectors"][d]["radius"];
 			(*simulations)[i].detInfo[d + 1].position = sim_input_struct["probes"]["detectors"][d]["pos"];
-			(*simulations)[i].detInfo[d + 1].angle = sim_input_struct["probes"]["detectors"][d]["angle"] * PI / 180;
+			(*simulations)[i].detInfo[d + 1].angle = float(sim_input_struct["probes"]["detectors"][d]["angle"]) * PI / 180;
 		}
 		// presetting critical angle for detectors
 		(*simulations)->critical_arr = new float[num_detector + 1];
