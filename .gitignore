@@ -243,4 +243,5 @@ ModelManifest.xml
 
 # for the compile file
 .o
+.O
 MCML_GPU
