@@ -242,6 +242,5 @@ ModelManifest.xml
 .fake/
 
 # for the compile file
-.o
-.O
+*.o
 MCML_GPU
