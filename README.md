@@ -73,11 +73,11 @@ The detector probes are oblique or not
 The parameters for the fibers
 * source:
 Parameters for source fiber
-        * NA:
+    * NA:
 Numerical aperture of source fiber
-        * radius:
+    * radius:
 The radius of source fiber, in cm
-        * angle:
+    * angle:
 The angle of source fiber, in degree, toward +x direction
     * num_SDS:
 Number of detector fibers
