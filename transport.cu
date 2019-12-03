@@ -55,7 +55,7 @@ __device__ float rn_gen(curandState *s)
 	return x;
 }
 
-void DoOneSimulation(SimulationStruct* simulation, int index, char* output, bool do_replay, bool do_output_A_arr, bool output_each_pathlength, bool do_output_average_pathlength, bool do_output_bin)
+void DoOneSimulation(SimulationStruct* simulation, int index, char* output, SimOptions simOpt)
 {
 	SummaryStruct sumStruc;
 	sumStruc.time1 = clock(); // tic
@@ -135,9 +135,9 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, bool
 		sumStruc.total_SDS_detect_num[s] = total_SDS_detect_num[s];
 	}
 
-	if (!do_replay) { // only output the reflectance
+	if (!simOpt.do_replay) { // only output the reflectance
 		output_fiber(simulation, reflectance, output);
-		output_sim_summary(simulation, sumStruc, do_replay);
+		output_sim_summary(simulation, sumStruc, simOpt.do_replay);
 	}
 	else { // replay the detected photons
 		// init the memstruct for replay
@@ -208,10 +208,10 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, bool
 			backup_SDS_detect_num[z] = temp_SDS_detect_num[z];
 		}
 
-		if (output_each_pathlength) {
-			output_SDS_pathlength(simulation, pathlength_weight_arr, temp_SDS_detect_num, 0, do_output_bin);
+		if (simOpt.output_each_pathlength) {
+			output_SDS_pathlength(simulation, pathlength_weight_arr, temp_SDS_detect_num, 0, simOpt.do_output_bin);
 		}
-		if (do_output_average_pathlength) {
+		if (simOpt.do_output_average_pathlength) {
 			double *average_PL = new double[simulation->num_layers * simulation->num_detector];
 			calculate_average_pathlength(average_PL, pathlength_weight_arr, simulation, backup_SDS_detect_num);
 			output_average_pathlength(simulation, average_PL);
@@ -223,14 +223,14 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, bool
 		cudaMemcpy(HostMem_Replay.A_rz, DeviceMem_Replay.A_rz, simulation->num_detector * record_nr * record_nz * sizeof(unsigned long long), cudaMemcpyDeviceToHost);
 		cudaMemcpy(HostMem_Replay.A0_z, DeviceMem_Replay.A0_z, simulation->num_detector * record_nz * sizeof(unsigned long long), cudaMemcpyDeviceToHost);
 
-		if (do_output_A_arr) {
+		if (simOpt.do_output_A_arr) {
 			output_A_rz(simulation, HostMem_Replay.A_rz); // output the absorbance
 			output_A0_z(simulation, HostMem_Replay.A0_z);
 		}
 
 		sumStruc.time3 = clock();
 		printf("finish replay, cost %.2f secs\n", (double)(sumStruc.time3 - sumStruc.time2) / CLOCKS_PER_SEC);
-		output_sim_summary(simulation, sumStruc, do_replay);
+		output_sim_summary(simulation, sumStruc, simOpt.do_replay);
 
 
 		// free the memory

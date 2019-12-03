@@ -13,8 +13,9 @@
 using namespace std;
 
 // DEFINES 
+#define USE_PRESET_GPU false // use the preseted blocks and threads number, otherwise, use the setting calculate by GPU
+
 #define NUM_BLOCKS 5*16//20*16 //5*16 //dimGrid //Keep numblocks a multiple of the #MP's of the GPU (8800GT=14MP)
-// #define NUM_BLOCKS 28*16
 // MP= multiprocessor, 1080=20MP, 1080ti=28MP
 
 //The register usage varies with platform. 64-bit Linux and 32.bit Windows XP have been tested.
@@ -23,7 +24,6 @@ using namespace std;
 #define NUM_THREADS NUM_BLOCKS*NUM_THREADS_PER_BLOCK
 #elif _WIN64
 #define NUM_THREADS_PER_BLOCK 256  //256 //dimBlock
-// #define NUM_THREADS_PER_BLOCK 32  //256 //dimBlock
 #define NUM_THREADS NUM_BLOCKS*NUM_THREADS_PER_BLOCK
 #else //uses 26 registers per thread
 #define NUM_THREADS_PER_BLOCK 288 //Keep above 192 to eliminate global memory access overhead However, keep low to allow enough registers per thread
@@ -189,6 +189,15 @@ typedef struct
 	int autothread;               // optimized number of threads to launch
 	int maxMPthread;              // maximum thread number per multi-processor
 } GPUInfo;
+
+typedef struct
+{
+	bool do_replay;	                    // replay the detected photon or not
+	bool do_output_A_arr;               // output the detected Absorbance array or not
+	bool output_each_pathlength;        // output the pathlength of each detected photon or not
+	bool do_output_average_pathlength;  // output the average pathlength of the detected photon or not
+	bool do_output_bin;                 // output the pathlength file in binary format ot not
+} SimOptions;
 
 __device__ __constant__ unsigned long long num_photons_dc[1];
 __device__ __constant__ unsigned int n_layers_dc[1];

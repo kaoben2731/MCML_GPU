@@ -9,7 +9,7 @@
 
 void FreeSimulationStruct(SimulationStruct* sim, int n_simulations);
 int read_mua_mus(SimulationStruct** simulations, char* sim_input, char* tissue_input);
-void DoOneSimulation(SimulationStruct* simulation, int index, char* output, bool do_replay, bool do_output_A_arr, bool output_each_pathlength, bool do_output_average_pathlength, bool do_output_bin);
+void DoOneSimulation(SimulationStruct* simulation, int index, char* output, SimOptions simOpt);
 void show_usage(string name);
 void print_MCML_information();
 int list_GPU(GPUInfo **info);
@@ -25,11 +25,12 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 
-	bool do_replay = false;
-	bool do_output_A_arr = false;
-	bool output_each_pathlength = false;
-	bool do_output_average_pathlength = false;
-	bool do_output_bin = false;
+	SimOptions simOpt;
+	simOpt.do_replay = false;
+	simOpt.do_output_A_arr = false;
+	simOpt.output_each_pathlength = false;
+	simOpt.do_output_average_pathlength = false;
+	simOpt.do_output_bin = false;
 
 	for (int i = 1; i < argc; i++) {
 		if (string(argv[i]) == "-h") {
@@ -37,38 +38,38 @@ int main(int argc, char* argv[])
 			return 0;
 		}
 		else if (string(argv[i]) == "-R") {
-			do_replay = true;
+			simOpt.do_replay = true;
 		}
 		else if (string(argv[i]) == "-A") {
-			do_output_A_arr = true;
+			simOpt.do_output_A_arr = true;
 		}
 		else if (string(argv[i]) == "-P") {
-			output_each_pathlength = true;
+			simOpt.output_each_pathlength = true;
 		}
 		else if (string(argv[i]) == "-AP") {
-			do_output_average_pathlength = true;
+			simOpt.do_output_average_pathlength = true;
 		}
 		else if (string(argv[i]) == "-B") {
-			do_output_bin = true;
+			simOpt.do_output_bin = true;
 		}
 	}
-	if (do_replay && !output_each_pathlength) {
-		do_output_average_pathlength = true;
+	if (simOpt.do_replay && !simOpt.output_each_pathlength) {
+		simOpt.do_output_average_pathlength = true;
 	}
 
-	if (output_each_pathlength && !do_replay) {
+	if (simOpt.output_each_pathlength && !simOpt.do_replay) {
 		cout << "-P option only work with -R option!\n";
 		return 0;
 	}
-	if (do_output_A_arr && !do_replay) {
+	if (simOpt.do_output_A_arr && !simOpt.do_replay) {
 		cout << "-A option only work with -R option!\n";
 		return 0;
 	}
-	if (do_output_average_pathlength && !do_replay) {
+	if (simOpt.do_output_average_pathlength && !simOpt.do_replay) {
 		cout << "-AP option only work with -R option!\n";
 		return 0;
 	}
-	if (do_output_bin && !output_each_pathlength) {
+	if (simOpt.do_output_bin && !simOpt.output_each_pathlength) {
 		cout << "-B option only work with -P option!\n";
 		return 0;
 	}
@@ -103,7 +104,7 @@ int main(int argc, char* argv[])
 	{
 		// Run a simulation
 		printf("simulating %d\n", i);
-		DoOneSimulation(&simulations[i], i, argv[3], do_replay, do_output_A_arr, output_each_pathlength, do_output_average_pathlength, do_output_bin); //Wang modified
+		DoOneSimulation(&simulations[i], i, argv[3], simOpt, &GPUs);
 	}
 
 	time2 = clock();
