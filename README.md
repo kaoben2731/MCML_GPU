@@ -65,14 +65,20 @@ The reflectance rate of the detector.  If no reflectance, set to 0.
 The refractive index for upper layer outside the tissue
 * lower_n:
 The refractive index for lower layer outside the tissue
+* source_probe_oblique:
+The source probe is oblique or not.  If this is 1, then the simulation will use fiber detection mode; otherwise, use ring detection mode.
+* detector_probe_oblique:
+The detector probes are oblique or not
 * probes:
 The parameters for the fibers
 * source:
 Parameters for source fiber
-    * NA:
+        * NA:
 Numerical aperture of source fiber
-    * radius:
+        * radius:
 The radius of source fiber, in cm
+        * angle:
+The angle of source fiber, in degree, toward +x direction
     * num_SDS:
 Number of detector fibers
     * detectors:
@@ -83,36 +89,45 @@ The position (distance of the center of source fiber to the center of this detec
 Numerical aperture of this detector fiber
         * radius:
 The radius of this detector fiber, in cm
+        * angle:
+The angle of this detector fiber, in degree, toward -x direction
+		
 * Example:
 ```
 {
   "number_simulation": 1,
-  "number_photons": 1000000000,
-  "number_layers": 3,
+  "number_photons": 100000000,
+  "number_layers": 5,
   "detector_reflectance": 0.0,
   "upper_n": 1.457,
   "lower_n": 1.457,
+  "source_probe_oblique": 1,
+  "detector_probe_oblique": 1,
   "probes": {
     "source": {
       "NA": 0.37,
-      "radius": 0.075
+      "radius": 0.075,
+      "angle": 0
     },
     "num_SDS": 3,
     "detectors": [
       {
         "pos": 0.8,
         "NA": 0.13,
-        "radius": 0.001
+        "radius": 0.001,
+        "angle": 0
       },
       {
         "pos": 1.5,
         "NA": 0.12,
-        "radius": 0.02
+        "radius": 0.02,
+        "angle": 0
       },
       {
         "pos": 3.0,
         "NA": 0.12,
-        "radius": 0.02
+        "radius": 0.02,
+        "angle": 0
       }
     ]
   }
@@ -163,8 +178,16 @@ The time cost to do the (first) simulate, in secs
 The time cost to do the second simulate and output the pathlength array, in secs
 * sim_speed(photons/s):
 The average speed of simulation.
+* sim_GPU:
+The name of GPU.
 * each_photon_weight:
 The initial weight of each photon at launch, when calculate WMC, the **[photon detected weight](#PLSDS_txt)** should be divided by this number.
+* number_layers:
+The number of tissue layers.
+* detect_mode:
+Use ring detector to collect photons, or using little fiber detector.
+* num_SDS:
+The number of derector fibers.
 * SDS_detected_number:
 The number of photon detected by each detector.  The number of elements is the same as **num_SDS** in [sim_set.json](#simset_json).
 
@@ -230,4 +253,12 @@ Those are 6 detected photon with properties below:
 
 * updata: 2019/10/12
 * Add the `-A` option to control output absorbance array.
-* Change the original `-A` (average pathlength) option to `-AP`
+* Change the original `-A` (average pathlength) option to `-AP`.
+
+### K2.01
+
+* updata: 2019/12/03
+* Add source_probe_oblique, detector_probe_oblique options in the setting file.
+* Add the oblique mode in simulation, which will use fiber detection mode.
+* Read and output GPU information.
+* Set the number of blocks and threads according to the GPU information.
