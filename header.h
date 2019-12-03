@@ -170,6 +170,7 @@ typedef struct
 	clock_t time1, time2, time3;
 	int* total_SDS_detect_num;
 	unsigned long long number_of_photons;
+	char GPU_name[max_GPU_name_length];
 }SummaryStruct;
 
 typedef struct

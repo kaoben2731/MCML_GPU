@@ -361,7 +361,16 @@ void output_sim_summary(SimulationStruct* simulation, SummaryStruct sumStruc, bo
 		sim_speed = (double)sumStruc.number_of_photons / ((double)(sumStruc.time2 - sumStruc.time1) / CLOCKS_PER_SEC);
 	}
 	myfile << "\"sim_speed(photons/s)\": " << sim_speed << ",\n";
+	myfile << "\"sim_GPU\": \"" << sumStruc.GPU_name << "\",\n";
 	myfile << "\"each_photon_weight\": " << scale1 << ",\n";
+	myfile << "\"number_layers\": " << simulation->num_layers << ",\n";
+	myfile << "\"detect_mode\": ";
+	if (simulation->source_probe_oblique)
+		myfile << "\"fiber\"";
+	else
+		myfile << "\"ring\"";
+	myfile << ",\n";
+	myfile << "\"num_SDS\": " << simulation->num_detector << ",\n";
 	myfile << "\"SDS_detected_number\": [";
 	for (int d = 0; d < simulation->num_detector-1; d++) {
 		myfile << " " << sumStruc.total_SDS_detect_num[d] << " ,";
