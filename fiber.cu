@@ -1,8 +1,8 @@
 #include "header.h"
 
-void fiber_initialization(Fibers* f)
+void fiber_initialization(Fibers* f, int num_of_threads)
 {
-	for (int i = 0; i < NUM_THREADS; i++)
+	for (int i = 0; i < num_of_threads; i++)
 	{
 		for (int j = 0; j < SDS_detected_temp_size; j++) {
 			f[i].data[j] = 0;
@@ -12,9 +12,9 @@ void fiber_initialization(Fibers* f)
 	}
 }
 
-void fiber_initialization_replay(Fibers_Replay* f_r, SimulationStruct* sim)
+void fiber_initialization_replay(Fibers_Replay* f_r, SimulationStruct* sim, int num_of_threads)
 {
-	for (int i = 0; i < NUM_THREADS; i++)
+	for (int i = 0; i < num_of_threads; i++)
 	{
 		f_r[i].have_detected = false;
 		f_r[i].data = 0;

@@ -9,7 +9,7 @@
 
 void FreeSimulationStruct(SimulationStruct* sim, int n_simulations);
 int read_mua_mus(SimulationStruct** simulations, char* sim_input, char* tissue_input);
-void DoOneSimulation(SimulationStruct* simulation, int index, char* output, SimOptions simOpt);
+void DoOneSimulation(SimulationStruct* simulation, int index, char* output, SimOptions simOpt, GPUInfo** GPUs);
 void show_usage(string name);
 void print_MCML_information();
 int list_GPU(GPUInfo **info);
@@ -92,7 +92,7 @@ int main(int argc, char* argv[])
 	GPUInfo *GPUs;
 	GPU_count = list_GPU(&GPUs);
 
-	system("pause");
+	//system("pause");
 
 	clock_t time1, time2;
 

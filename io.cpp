@@ -474,8 +474,9 @@ int list_GPU(GPUInfo **info)
 		(*info)[dev].MPs = dp.multiProcessorCount;
 		(*info)[dev].core = dp.multiProcessorCount*cuda_version_to_core_count(dp.major, dp.minor);
 		(*info)[dev].maxMPthread = dp.maxThreadsPerMultiProcessor;
-		(*info)[dev].autoblock = (*info)[dev].maxMPthread / cuda_version_to_block_thread(dp.major, dp.minor);
-		(*info)[dev].autothread = (*info)[dev].autoblock * cuda_version_to_block_thread(dp.major, dp.minor) * (*info)[dev].MPs;
+		(*info)[dev].autothreadpb = cuda_version_to_block_thread(dp.major, dp.minor);
+		(*info)[dev].autoblock = (*info)[dev].maxMPthread / (*info)[dev].autothreadpb;
+		(*info)[dev].autototalthread = (*info)[dev].autoblock * (*info)[dev].autothreadpb * (*info)[dev].MPs;
 
 		if (strncmp(dp.name, "Device Emulation", 16)) {
 			if (Print_GPU_info) {
@@ -487,7 +488,7 @@ int list_GPU(GPUInfo **info)
 					(unsigned int)(*info)[dev].globalmem, (unsigned int)(*info)[dev].constmem,
 					(unsigned int)(*info)[dev].sharedmem, (unsigned int)(*info)[dev].regcount, (*info)[dev].clock*1e-6f);
 				printf("Number of MPs:\t\t%u\nNumber of Cores:\t%u\n", (*info)[dev].MPs, (*info)[dev].core);
-				printf("Max Thread per MP:\t%d\nBlock per SM:\t\t%d\nThread per Block:\t%d\nTotal Thread:\t\t%d\n", (*info)[dev].maxMPthread, (*info)[dev].autoblock, cuda_version_to_block_thread(dp.major, dp.minor), (*info)[dev].autothread);
+				printf("Max Thread per MP:\t%d\nBlock per SM:\t\t%d\nThread per Block:\t%d\nTotal Thread:\t\t%d\n", (*info)[dev].maxMPthread, (*info)[dev].autoblock, (*info)[dev].autothreadpb, (*info)[dev].autototalthread);
 				printf("\n");
 			}
 		}

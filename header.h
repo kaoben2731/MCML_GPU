@@ -186,7 +186,8 @@ typedef struct
 	int MPs;                      // number of multi processors
 	int core;                     // number of stream processors
 	int autoblock;                // optimized number of blocks to launch
-	int autothread;               // optimized number of threads to launch
+	int autothreadpb;             // optimized number of threads per block
+	int autototalthread;          // optimized number of total threads to launch
 	int maxMPthread;              // maximum thread number per multi-processor
 } GPUInfo;
 

@@ -8,21 +8,20 @@
 #include <math.h>
 
 
-int InitMemStructs(MemStruct* HostMem, MemStruct* DeviceMem, SimulationStruct* sim);
-int InitMemStructs_replay(MemStruct_Replay* HostMem, MemStruct_Replay* DeviceMem, SimulationStruct* sim);
+int InitMemStructs(MemStruct* HostMem, MemStruct* DeviceMem, SimulationStruct* sim, int num_of_threads);
+int InitMemStructs_replay(MemStruct_Replay* HostMem, MemStruct_Replay* DeviceMem, SimulationStruct* sim, int num_of_threads);
 void FreeMemStructs(MemStruct* HostMem, MemStruct* DeviceMem);
 void FreeMemStructs_replay(MemStruct_Replay* HostMem, MemStruct_Replay* DeviceMem);
 void FreeSimulationStruct(SimulationStruct* sim, int n_simulations);
-__global__ void MCd(MemStruct DeviceMem, unsigned long long seed);
-__global__ void MCd_replay(MemStruct DeviceMem, MemStruct_Replay DeviceMem_Replay, int detected_SDS);
+__global__ void MCd(MemStruct DeviceMem, unsigned long long seed, int num_of_threads, int num_of_threads_per_block);
+__global__ void MCd_replay(MemStruct DeviceMem, MemStruct_Replay DeviceMem_Replay, int detected_SDS, int num_of_threads_per_block);
 int InitDCMem(SimulationStruct* sim);
 int Write_Simulation_Results(MemStruct* HostMem, SimulationStruct* sim, clock_t simulation_time);
 int read_simulation_data(char* filename, SimulationStruct** simulations, int ignoreAdetection);
 int interpret_arg(int argc, char* argv[], unsigned long long* seed, int* ignoreAdetection);
 
-__global__ void MCd(MemStruct DeviceMem);
 __device__ void LaunchPhoton(PhotonStruct* p, curandState *state);
-__global__ void LaunchPhoton_Global(MemStruct DeviceMem, unsigned long long seed);
+__global__ void LaunchPhoton_Global(MemStruct DeviceMem, unsigned long long seed, int num_of_threads_per_block);
 __device__ void Spin(PhotonStruct*, float, curandState* state);
 __device__ unsigned int Reflect(PhotonStruct*, int, curandState* state);
 __device__ unsigned int PhotonSurvive(PhotonStruct*, curandState* state);
@@ -30,14 +29,14 @@ __device__ void AtomicAddULL(unsigned long long* address, unsigned int add);
 __device__ bool detect(PhotonStruct* p, Fibers* f);
 __device__ bool detect_replay(PhotonStruct* p, Fibers* f, int detected_SDS);
 __device__ int binarySearch(float *data, float value);
-void fiber_initialization(Fibers* f);
-void fiber_initialization_replay(Fibers_Replay* f_r, SimulationStruct* sim);
+void fiber_initialization(Fibers* f, int num_of_threads);
+void fiber_initialization_replay(Fibers_Replay* f_r, SimulationStruct* sim, int num_of_threads);
 void output_fiber(SimulationStruct* sim, float* reflectance, char* output); //Wang modified
 void output_SDS_pathlength(SimulationStruct* simulation, float ***pathlength_weight_arr, int *temp_SDS_detect_num, int SDS_to_output, bool do_output_bin);
 void output_sim_summary(SimulationStruct* simulation, SummaryStruct sumStruc, bool do_replay);
 //void calculate_reflectance(Fibers* f, float *result, float (*pathlength_weight_arr)[NUM_LAYER + 1][detected_temp_size], int *total_SDS_detect_num, int *temp_SDS_detect_num);
-void calculate_reflectance(Fibers* f, float *result, int* total_SDS_detect_num, vector<vector<curandState>>& detected_state_arr);
-void calculate_reflectance_replay(Fibers_Replay* f_r, float *result, float ***pathlength_weight_arr, int *temp_SDS_detect_num, int *total_SDS_detect_num, int SDS_should_be, int num_layers);
+void calculate_reflectance(Fibers* f, float *result, int* total_SDS_detect_num, vector<vector<curandState>>& detected_state_arr, int num_of_threads);
+void calculate_reflectance_replay(Fibers_Replay* f_r, float *result, float ***pathlength_weight_arr, int *temp_SDS_detect_num, int *total_SDS_detect_num, int SDS_should_be, int num_layers, int num_of_threads);
 void input_g(int index, G_Array *g);
 int InitG(G_Array* HostG, G_Array* DeviceG, int index);
 void FreeG(G_Array* HostG, G_Array* DeviceG);
@@ -55,7 +54,7 @@ __device__ float rn_gen(curandState *s)
 	return x;
 }
 
-void DoOneSimulation(SimulationStruct* simulation, int index, char* output, SimOptions simOpt)
+void DoOneSimulation(SimulationStruct* simulation, int index, char* output, SimOptions simOpt, GPUInfo** GPUs)
 {
 	SummaryStruct sumStruc;
 	sumStruc.time1 = clock(); // tic
@@ -71,6 +70,26 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, SimO
 
 	unsigned long long seed = time(NULL);
 	srand(seed); // set random seed for main loop
+
+	int num_of_threads_per_block;
+	int num_of_blocks;
+	int num_of_threads;
+
+	if (USE_PRESET_GPU)
+	{
+		num_of_blocks = NUM_BLOCKS;
+		num_of_threads_per_block = NUM_THREADS_PER_BLOCK;
+		num_of_threads = NUM_THREADS;
+	}
+	else
+	{
+		num_of_blocks = (*GPUs)[0].autoblock*(*GPUs)[0].MPs;
+		num_of_threads_per_block = (*GPUs)[0].autothreadpb;
+		num_of_threads = num_of_blocks*num_of_threads_per_block;
+	}
+
+	dim3 dimBlock(num_of_threads_per_block);	printf("NUM_THREADS_PER_BLOCK\t%d\n", num_of_threads_per_block);
+	dim3 dimGrid(num_of_blocks);				printf("NUM_BLOCKS\t%d\n", num_of_blocks);
 	
 	MemStruct DeviceMem;
 	MemStruct HostMem;
@@ -79,13 +98,11 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, SimO
 
 	cudaError_t cudastat;
 
-	InitMemStructs(&HostMem, &DeviceMem, simulation);
+	InitMemStructs(&HostMem, &DeviceMem, simulation, num_of_threads);
+	
 	InitDCMem(simulation);
-
-	dim3 dimBlock(NUM_THREADS_PER_BLOCK);	printf("NUM_THREADS_PER_BLOCK\t%d\n", NUM_THREADS_PER_BLOCK);
-	dim3 dimGrid(NUM_BLOCKS);				printf("NUM_BLOCKS\t%d\n", NUM_BLOCKS);
-
-	LaunchPhoton_Global << <dimGrid, dimBlock >> >(DeviceMem, seed);
+	
+	LaunchPhoton_Global << <dimGrid, dimBlock >> >(DeviceMem, seed, num_of_threads_per_block);
 	cudaThreadSynchronize(); //CUDA_SAFE_CALL( cudaThreadSynchronize() ); // Wait for all threads to finish
 	cudastat = cudaGetLastError(); // Check if there was an error
 	if (cudastat)printf("Error code=%i, %s.\n", cudastat, cudaGetErrorString(cudastat));
@@ -96,26 +113,26 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, SimO
 	while (threads_active_total>0)
 	{
 		i++;
-		fiber_initialization(HostMem.f); //Wang modified
+		fiber_initialization(HostMem.f, num_of_threads); //Wang modified
 																//printf("Size of Fibers\t%d\n",sizeof(Fibers));
-		cudaMemcpy(DeviceMem.f, HostMem.f, NUM_THREADS * sizeof(Fibers), cudaMemcpyHostToDevice); //malloc sizeof(FIbers) equals to 13*(5*4)
+		cudaMemcpy(DeviceMem.f, HostMem.f, num_of_threads * sizeof(Fibers), cudaMemcpyHostToDevice); //malloc sizeof(FIbers) equals to 13*(5*4)
 
 																								  //run the kernel
 		seed = rand(); // get seed for MCD
-		MCd <<<dimGrid, dimBlock >>>(DeviceMem, seed);
+		MCd <<<dimGrid, dimBlock >>>(DeviceMem, seed, num_of_threads, num_of_threads_per_block);
 		//cout << "after MCd\n";
 		cudaThreadSynchronize(); //CUDA_SAFE_CALL( cudaThreadSynchronize() ); // Wait for all threads to finish
 		cudastat = cudaGetLastError(); // Check if there was an error
 		if (cudastat)printf("Error code=%i, %s.\n", cudastat, cudaGetErrorString(cudastat));
 
 		// Copy thread_active from device to host, later deleted
-		cudaMemcpy(HostMem.thread_active, DeviceMem.thread_active, NUM_THREADS * sizeof(unsigned int), cudaMemcpyDeviceToHost); //CUDA_SAFE_CALL(cudaMemcpy(HostMem.thread_active,DeviceMem.thread_active,NUM_THREADS*sizeof(unsigned int),cudaMemcpyDeviceToHost) );
+		cudaMemcpy(HostMem.thread_active, DeviceMem.thread_active, num_of_threads * sizeof(unsigned int), cudaMemcpyDeviceToHost); //CUDA_SAFE_CALL(cudaMemcpy(HostMem.thread_active,DeviceMem.thread_active,NUM_THREADS*sizeof(unsigned int),cudaMemcpyDeviceToHost) );
 		threads_active_total = 0;
-		for (ii = 0; ii<NUM_THREADS; ii++) threads_active_total += HostMem.thread_active[ii];
+		for (ii = 0; ii<num_of_threads; ii++) threads_active_total += HostMem.thread_active[ii];
 
-		cudaMemcpy(HostMem.f, DeviceMem.f, NUM_THREADS * sizeof(Fibers), cudaMemcpyDeviceToHost); //CUDA_SAFE_CALL(cudaMemcpy(HostMem.f,DeviceMem.f,NUM_THREADS*sizeof(Fibers),cudaMemcpyDeviceToHost));
+		cudaMemcpy(HostMem.f, DeviceMem.f, num_of_threads * sizeof(Fibers), cudaMemcpyDeviceToHost); //CUDA_SAFE_CALL(cudaMemcpy(HostMem.f,DeviceMem.f,NUM_THREADS*sizeof(Fibers),cudaMemcpyDeviceToHost));
 		//cout << "before cal ref\n";
-		calculate_reflectance(HostMem.f, reflectance, total_SDS_detect_num, detected_state_arr);
+		calculate_reflectance(HostMem.f, reflectance, total_SDS_detect_num, detected_state_arr, num_of_threads);
 		//cout << "after cal ref\n";
 
 		cudaMemcpy(HostMem.num_terminated_photons, DeviceMem.num_terminated_photons, sizeof(unsigned long long), cudaMemcpyDeviceToHost);
@@ -143,7 +160,7 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, SimO
 		// init the memstruct for replay
 		MemStruct_Replay HostMem_Replay;
 		MemStruct_Replay DeviceMem_Replay;
-		InitMemStructs_replay(&HostMem_Replay, &DeviceMem_Replay, simulation);
+		InitMemStructs_replay(&HostMem_Replay, &DeviceMem_Replay, simulation, num_of_threads);
 		//cout << "after init replay mem\n";
 
 		int *temp_SDS_detect_num = new int[simulation->num_detector]; // record temp number fo detected photon by the detector
@@ -168,36 +185,36 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, SimO
 			int replay_counter = 0;
 			while (replay_counter < total_SDS_detect_num[s]) {
 				int to_dev_index = 0;
-				for (int t = 0; t < NUM_THREADS; t++) {
+				for (int t = 0; t < num_of_threads; t++) {
 					HostMem.thread_active[t] = 0;
 				}
-				while (to_dev_index < NUM_THREADS && replay_counter < total_SDS_detect_num[s]) {
+				while (to_dev_index < num_of_threads && replay_counter < total_SDS_detect_num[s]) {
 					HostMem.state[to_dev_index] = detected_state_arr[s][replay_counter];
 					HostMem.thread_active[to_dev_index] = 1;
 					replay_counter++;
 					to_dev_index++;
 				}
-				cudaMemcpy(DeviceMem.state, HostMem.state, NUM_THREADS * sizeof(curandState), cudaMemcpyHostToDevice);
-				cudaMemcpy(DeviceMem.thread_active, HostMem.thread_active, NUM_THREADS * sizeof(unsigned int), cudaMemcpyHostToDevice);
+				cudaMemcpy(DeviceMem.state, HostMem.state, num_of_threads * sizeof(curandState), cudaMemcpyHostToDevice);
+				cudaMemcpy(DeviceMem.thread_active, HostMem.thread_active, num_of_threads * sizeof(unsigned int), cudaMemcpyHostToDevice);
 				//printf("\t\tafter copy seeds to device mem\n");
 
 				// init fibers
-				fiber_initialization(HostMem.f);
-				cudaMemcpy(DeviceMem.f, HostMem.f, NUM_THREADS * sizeof(Fibers), cudaMemcpyHostToDevice);
-				fiber_initialization_replay(HostMem_Replay.f_r, simulation);
-				cudaMemcpy(DeviceMem_Replay.f_r, HostMem_Replay.f_r, NUM_THREADS * sizeof(Fibers_Replay), cudaMemcpyHostToDevice);
+				fiber_initialization(HostMem.f, num_of_threads);
+				cudaMemcpy(DeviceMem.f, HostMem.f, num_of_threads * sizeof(Fibers), cudaMemcpyHostToDevice);
+				fiber_initialization_replay(HostMem_Replay.f_r, simulation, num_of_threads);
+				cudaMemcpy(DeviceMem_Replay.f_r, HostMem_Replay.f_r, num_of_threads * sizeof(Fibers_Replay), cudaMemcpyHostToDevice);
 				//printf("\t\tafter init fibers\n");
 
 				// replay
-				MCd_replay << <dimGrid, dimBlock >> > (DeviceMem, DeviceMem_Replay, s);
+				MCd_replay << <dimGrid, dimBlock >> > (DeviceMem, DeviceMem_Replay, s, num_of_threads_per_block);
 				cudaThreadSynchronize(); // Wait for all threads to finish
 				cudastat = cudaGetLastError(); // Check if there was an error
 				if (cudastat)printf("Error code=%i, %s.\n", cudastat, cudaGetErrorString(cudastat));
 				//printf("\t\tafter replay\n");
 
 				// process result
-				cudaMemcpy(HostMem_Replay.f_r, DeviceMem_Replay.f_r, NUM_THREADS * sizeof(Fibers_Replay), cudaMemcpyDeviceToHost);
-				calculate_reflectance_replay(HostMem_Replay.f_r, replay_reflectance, pathlength_weight_arr, temp_SDS_detect_num, total_SDS_detect_num, s + 1, simulation->num_layers);
+				cudaMemcpy(HostMem_Replay.f_r, DeviceMem_Replay.f_r, num_of_threads * sizeof(Fibers_Replay), cudaMemcpyDeviceToHost);
+				calculate_reflectance_replay(HostMem_Replay.f_r, replay_reflectance, pathlength_weight_arr, temp_SDS_detect_num, total_SDS_detect_num, s + 1, simulation->num_layers, num_of_threads);
 				//printf("\t\tafter cal reflectance\n");
 			}
 
@@ -278,9 +295,9 @@ void calculate_average_pathlength(double *average_PL ,float ***pathlength_weight
 	printf("finish average pathlength, cost %.2f secs\n", (double)(time2 - time1) / CLOCKS_PER_SEC);
 }
 
-void calculate_reflectance(Fibers* f, float *result, int* total_SDS_detect_num, vector<vector<curandState>>& detected_state_arr)
+void calculate_reflectance(Fibers* f, float *result, int* total_SDS_detect_num, vector<vector<curandState>>& detected_state_arr, int num_of_threads)
 {
-	for (int i = 0; i < NUM_THREADS; i++)
+	for (int i = 0; i < num_of_threads; i++)
 	{
 		// record the weight, count detected photon number, and record pathlength
 		for (int k = 0; k < f[i].detected_photon_counter; k++) {
@@ -294,9 +311,9 @@ void calculate_reflectance(Fibers* f, float *result, int* total_SDS_detect_num, 
 
 //void calculate_reflectance(Fibers* f, float *result, float (*pathlength_weight_arr)[NUM_LAYER + 1][detected_temp_size], int *total_SDS_detect_num, int *temp_SDS_detect_num)
 //SDS_should_be: the detecting SDS, start from s=1 for SDS1
-void calculate_reflectance_replay(Fibers_Replay* f_r, float *result, float ***pathlength_weight_arr, int *temp_SDS_detect_num, int *total_SDS_detect_num, int SDS_should_be, int num_layers)
+void calculate_reflectance_replay(Fibers_Replay* f_r, float *result, float ***pathlength_weight_arr, int *temp_SDS_detect_num, int *total_SDS_detect_num, int SDS_should_be, int num_layers, int num_of_threads)
 {
-	for (int i = 0; i < NUM_THREADS; i++)
+	for (int i = 0; i < num_of_threads; i++)
 	{
 		// record the weight, count detected photon number, and record pathlength
 		result[SDS_should_be -1] += f_r[i].data;
@@ -320,7 +337,7 @@ __device__ void AtomicAddULL(unsigned long long* address, unsigned int add)
 		atomicAdd(((unsigned int*)address) + 1, 1u);
 }
 
-__global__ void MCd(MemStruct DeviceMem, unsigned long long seed)
+__global__ void MCd(MemStruct DeviceMem, unsigned long long seed, int num_of_threads, int num_of_threads_per_block)
 {
 
 	//Block index
@@ -330,7 +347,7 @@ __global__ void MCd(MemStruct DeviceMem, unsigned long long seed)
 	int tx = threadIdx.x;
 
 	//First element processed by the block
-	int begin = NUM_THREADS_PER_BLOCK * bx;
+	int begin = num_of_threads_per_block * bx;
 
 	float s;	//step length
 
@@ -421,7 +438,7 @@ __global__ void MCd(MemStruct DeviceMem, unsigned long long seed)
 		if (!PhotonSurvive(&p, &state)) //if the photon doesn't survive
 		{
 			k = false;
-			if (atomicAdd(DeviceMem.num_terminated_photons, 1u) < (*num_photons_dc - NUM_THREADS))
+			if (atomicAdd(DeviceMem.num_terminated_photons, 1u) < (*num_photons_dc - num_of_threads))
 			{	// Ok to launch another photon
 				LaunchPhoton(&p, &state);//Launch a new photon
 				state = p.state_run; // reload the state of this thread
@@ -452,14 +469,14 @@ __global__ void MCd(MemStruct DeviceMem, unsigned long long seed)
 
 }//end MCd
 
-__global__ void MCd_replay(MemStruct DeviceMem, MemStruct_Replay DeviceMem_Replay, int detected_SDS)
+__global__ void MCd_replay(MemStruct DeviceMem, MemStruct_Replay DeviceMem_Replay, int detected_SDS, int num_of_threads_per_block)
 {
 	//Block index
 	int bx = blockIdx.x;
 	//Thread index
 	int tx = threadIdx.x;
 	//First element processed by the block
-	int begin = NUM_THREADS_PER_BLOCK * bx;
+	int begin = num_of_threads_per_block * bx;
 
 	//First, make sure the thread (photon) is active
 	if (DeviceMem.thread_active[begin + tx]) {
@@ -666,13 +683,13 @@ __device__ void LaunchPhoton(PhotonStruct* p, curandState *state)
 }
 
 
-__global__ void LaunchPhoton_Global(MemStruct DeviceMem, unsigned long long seed)
+__global__ void LaunchPhoton_Global(MemStruct DeviceMem, unsigned long long seed, int num_of_threads_per_block)
 {
 	int bx = blockIdx.x;
 	int tx = threadIdx.x;
 
 	//First element processed by the block
-	int begin = NUM_THREADS_PER_BLOCK*bx;
+	int begin = num_of_threads_per_block*bx;
 
 	PhotonStruct p;
 
@@ -976,18 +993,18 @@ int InitDCMem(SimulationStruct* sim)
 	return 0;
 }
 
-int InitMemStructs(MemStruct* HostMem, MemStruct* DeviceMem, SimulationStruct* sim) //Wang modified
+int InitMemStructs(MemStruct* HostMem, MemStruct* DeviceMem, SimulationStruct* sim, int num_of_threads)
 {
 	// Allocate p on the device!!
-	cudaMalloc((void**)&DeviceMem->p, NUM_THREADS * sizeof(PhotonStruct));
+	cudaMalloc((void**)&DeviceMem->p, num_of_threads * sizeof(PhotonStruct));
 
 	// Allocate thread_active on the device and host
-	HostMem->thread_active = (unsigned int*)malloc(NUM_THREADS * sizeof(unsigned int));
+	HostMem->thread_active = (unsigned int*)malloc(num_of_threads * sizeof(unsigned int));
 	if (HostMem->thread_active == NULL) { printf("Error allocating HostMem->thread_active"); exit(1); }
-	for (int i = 0; i<NUM_THREADS; i++)HostMem->thread_active[i] = 1u;
+	for (int i = 0; i<num_of_threads; i++)HostMem->thread_active[i] = 1u;
 
-	cudaMalloc((void**)&DeviceMem->thread_active, NUM_THREADS * sizeof(unsigned int));
-	cudaMemcpy(DeviceMem->thread_active, HostMem->thread_active, NUM_THREADS * sizeof(unsigned int), cudaMemcpyHostToDevice);
+	cudaMalloc((void**)&DeviceMem->thread_active, num_of_threads * sizeof(unsigned int));
+	cudaMemcpy(DeviceMem->thread_active, HostMem->thread_active, num_of_threads * sizeof(unsigned int), cudaMemcpyHostToDevice);
 
 	//Allocate num_launched_photons on the device and host
 	HostMem->num_terminated_photons = (unsigned long long*) malloc(sizeof(unsigned long long));
@@ -998,25 +1015,26 @@ int InitMemStructs(MemStruct* HostMem, MemStruct* DeviceMem, SimulationStruct* s
 	cudaMemcpy(DeviceMem->num_terminated_photons, HostMem->num_terminated_photons, sizeof(unsigned long long), cudaMemcpyHostToDevice);
 
 	//Allocate and initialize fiber f on the device and host
-	HostMem->f = (Fibers*)malloc(NUM_THREADS * sizeof(Fibers));
-	cudaMalloc((void**)&DeviceMem->f, NUM_THREADS * sizeof(Fibers));
-	fiber_initialization(HostMem->f); //Wang modified
-	cudaMemcpy(DeviceMem->f, HostMem->f, NUM_THREADS * sizeof(Fibers), cudaMemcpyHostToDevice);
+	HostMem->f = (Fibers*)malloc(num_of_threads * sizeof(Fibers));
+	cudaMalloc((void**)&DeviceMem->f, num_of_threads * sizeof(Fibers));
+
+	fiber_initialization(HostMem->f, num_of_threads); //Wang modified
+	cudaMemcpy(DeviceMem->f, HostMem->f, num_of_threads * sizeof(Fibers), cudaMemcpyHostToDevice);
 
 	//Allocate states on the device and host
-	HostMem->state = (curandState*)malloc(NUM_THREADS * sizeof(curandState));
-	cudaMalloc((void**)&DeviceMem->state, NUM_THREADS * sizeof(curandState));
+	HostMem->state = (curandState*)malloc(num_of_threads * sizeof(curandState));
+	cudaMalloc((void**)&DeviceMem->state, num_of_threads * sizeof(curandState));
 
 	return 1;
 }
 
-int InitMemStructs_replay(MemStruct_Replay* HostMem, MemStruct_Replay* DeviceMem, SimulationStruct* sim)
+int InitMemStructs_replay(MemStruct_Replay* HostMem, MemStruct_Replay* DeviceMem, SimulationStruct* sim, int num_of_threads)
 {
 	//Allocate and initialize fiber_Replay f_r on the device and host
-	HostMem->f_r = (Fibers_Replay*)malloc(NUM_THREADS * sizeof(Fibers_Replay));
-	cudaMalloc((void**)&DeviceMem->f_r, NUM_THREADS * sizeof(Fibers_Replay));
-	fiber_initialization_replay(HostMem->f_r, sim);
-	cudaMemcpy(DeviceMem->f_r, HostMem->f_r, NUM_THREADS * sizeof(Fibers_Replay), cudaMemcpyHostToDevice);
+	HostMem->f_r = (Fibers_Replay*)malloc(num_of_threads * sizeof(Fibers_Replay));
+	cudaMalloc((void**)&DeviceMem->f_r, num_of_threads * sizeof(Fibers_Replay));
+	fiber_initialization_replay(HostMem->f_r, sim, num_of_threads);
+	cudaMemcpy(DeviceMem->f_r, HostMem->f_r, num_of_threads * sizeof(Fibers_Replay), cudaMemcpyHostToDevice);
 
 	int rz_size, z0_size;
 	rz_size = sim->num_detector*record_nr*record_nz;
