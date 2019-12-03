@@ -433,7 +433,7 @@ void output_A0_z(SimulationStruct* sim, unsigned long long *data)
 // GPU cores per SM
 int cuda_version_to_core_count(int ver1, int ver2)
 {
-	int ver = ver1 * 10 * ver2;
+	int ver = ver1 * 10 + ver2;
 	if (ver < 20) return 8;
 	else if (ver < 21) return 32;
 	else if (ver < 30)return 48;
@@ -448,7 +448,7 @@ int cuda_version_to_core_count(int ver1, int ver2)
 // max thread per block
 int cuda_version_to_block_thread(int ver1, int ver2)
 {
-	int ver = ver1 * 10 * ver2;
+	int ver = ver1 * 10 + ver2;
 	if (ver < 30) return 8;
 	else if (ver < 50) return 16;
 	else return 32;
