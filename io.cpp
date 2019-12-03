@@ -420,3 +420,77 @@ void output_A0_z(SimulationStruct* sim, unsigned long long *data)
 		myfile.close();
 	}
 }
+
+// GPU cores per SM
+int cuda_version_to_core_count(int ver1, int ver2)
+{
+	int ver = ver1 * 10 * ver2;
+	if (ver < 20) return 8;
+	else if (ver < 21) return 32;
+	else if (ver < 30)return 48;
+	else if (ver < 40)return 192; // CC 3.X: 192
+	else if (ver < 50)return 192;
+	else if (ver < 60)return 128; // CC 5.X: 128
+	else if (ver == 60)return 64; // CC 6.0: 64
+	else if (ver <= 62)return 128; // CC 6.1, 6.2: 128
+	else return 128;
+}
+
+// max thread per block
+int cuda_version_to_block_thread(int ver1, int ver2)
+{
+	int ver = ver1 * 10 * ver2;
+	if (ver < 30) return 8;
+	else if (ver < 50) return 16;
+	else return 32;
+}
+
+int list_GPU(GPUInfo **info)
+{
+	int deviceCount, activedev = 0;
+
+	cudaGetDeviceCount(&deviceCount);
+	if (deviceCount == 0) {
+		cout<<"ERROR: No CUDA-capable GPU device found\n";
+		return 0;
+	}
+
+	*info = (GPUInfo *)calloc(deviceCount, sizeof(GPUInfo));
+
+	// scan from the first device
+	for (int dev = 0; dev<deviceCount; dev++) {
+		cudaDeviceProp dp;
+		cudaGetDeviceProperties(&dp, dev);
+
+		strncpy((*info)[dev].name, dp.name, max_GPU_name_length);
+		(*info)[dev].id = dev + 1;
+		(*info)[dev].major = dp.major;
+		(*info)[dev].minor = dp.minor;
+		(*info)[dev].globalmem = dp.totalGlobalMem;
+		(*info)[dev].constmem = dp.totalConstMem;
+		(*info)[dev].sharedmem = dp.sharedMemPerBlock;
+		(*info)[dev].regcount = dp.regsPerBlock;
+		(*info)[dev].clock = dp.clockRate;
+		(*info)[dev].MPs = dp.multiProcessorCount;
+		(*info)[dev].core = dp.multiProcessorCount*cuda_version_to_core_count(dp.major, dp.minor);
+		(*info)[dev].maxMPthread = dp.maxThreadsPerMultiProcessor;
+		(*info)[dev].autoblock = (*info)[dev].maxMPthread / cuda_version_to_block_thread(dp.major, dp.minor);
+		(*info)[dev].autothread = (*info)[dev].autoblock * cuda_version_to_block_thread(dp.major, dp.minor) * (*info)[dev].MPs;
+
+		if (strncmp(dp.name, "Device Emulation", 16)) {
+			if (Print_GPU_info) {
+				cout<<"=======================   GPU Infomation  ==========================\n";
+				printf("Device %d of %d:\t\t%s\n", (*info)[dev].id, deviceCount, (*info)[dev].name);
+				printf("Compute Capability:\t%u.%u\n", (*info)[dev].major, (*info)[dev].minor);
+				printf("Global Memory:\t\t%u B\nConstant Memory:\t%u B\n"
+					"Shared Memory:\t\t%u B\nRegisters:\t\t%u\nClock Speed:\t\t%.2f GHz\n",
+					(unsigned int)(*info)[dev].globalmem, (unsigned int)(*info)[dev].constmem,
+					(unsigned int)(*info)[dev].sharedmem, (unsigned int)(*info)[dev].regcount, (*info)[dev].clock*1e-6f);
+				printf("Number of MPs:\t\t%u\nNumber of Cores:\t%u\n", (*info)[dev].MPs, (*info)[dev].core);
+				printf("Max Thread per MP:\t%d\nBlock per SM:\t\t%d\nThread per Block:\t%d\nTotal Thread:\t\t%d\n", (*info)[dev].maxMPthread, (*info)[dev].autoblock, cuda_version_to_block_thread(dp.major, dp.minor), (*info)[dev].autothread);
+				printf("\n");
+			}
+		}
+	}
+	return deviceCount;
+}

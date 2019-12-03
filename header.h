@@ -14,6 +14,7 @@ using namespace std;
 
 // DEFINES 
 #define NUM_BLOCKS 5*16//20*16 //5*16 //dimGrid //Keep numblocks a multiple of the #MP's of the GPU (8800GT=14MP)
+// #define NUM_BLOCKS 28*16
 // MP= multiprocessor, 1080=20MP, 1080ti=28MP
 
 //The register usage varies with platform. 64-bit Linux and 32.bit Windows XP have been tested.
@@ -22,6 +23,7 @@ using namespace std;
 #define NUM_THREADS NUM_BLOCKS*NUM_THREADS_PER_BLOCK
 #elif _WIN64
 #define NUM_THREADS_PER_BLOCK 256  //256 //dimBlock
+// #define NUM_THREADS_PER_BLOCK 32  //256 //dimBlock
 #define NUM_THREADS NUM_BLOCKS*NUM_THREADS_PER_BLOCK
 #else //uses 26 registers per thread
 #define NUM_THREADS_PER_BLOCK 288 //Keep above 192 to eliminate global memory access overhead However, keep low to allow enough registers per thread
@@ -29,8 +31,8 @@ using namespace std;
 #endif
 
 
-#define MCML_VERSION "1.01"
-#define Last_Update_Date "2019/10/12"
+#define MCML_VERSION "2.01"
+#define Last_Update_Date "2019/12/04"
 
 #define NUM_LAYER 5
 #define PRESET_NUM_LAYER 10
@@ -67,6 +69,9 @@ using namespace std;
 
 // define the percentage of change mua to calculate average pathlength
 #define mua_change_ratio 0.001 // 0.1%
+
+#define max_GPU_name_length 100
+#define Print_GPU_info true
 
 // TYPEDEFS
 typedef struct __align__(16)
@@ -167,6 +172,23 @@ typedef struct
 	unsigned long long number_of_photons;
 }SummaryStruct;
 
+typedef struct
+{
+	char name[max_GPU_name_length];
+	int id;                       // global index of the GPU, starting from 0
+	int major;                    // major version of the compute capability
+	int minor;                    // minor version of the compute capability
+	size_t globalmem;             // size of the global memory in the GPU
+	size_t constmem;              // size of the constant memory in the GPU
+	size_t sharedmem;             // size of the shared memory in the GPU
+	int regcount;                 // size of the register file in the GPU
+	int clock;                    // clock in Hz of the GPU processor
+	int MPs;                      // number of multi processors
+	int core;                     // number of stream processors
+	int autoblock;                // optimized number of blocks to launch
+	int autothread;               // optimized number of threads to launch
+	int maxMPthread;              // maximum thread number per multi-processor
+} GPUInfo;
 
 __device__ __constant__ unsigned long long num_photons_dc[1];
 __device__ __constant__ unsigned int n_layers_dc[1];

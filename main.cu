@@ -12,6 +12,7 @@ int read_mua_mus(SimulationStruct** simulations, char* sim_input, char* tissue_i
 void DoOneSimulation(SimulationStruct* simulation, int index, char* output, bool do_replay, bool do_output_A_arr, bool output_each_pathlength, bool do_output_average_pathlength, bool do_output_bin);
 void show_usage(string name);
 void print_MCML_information();
+int list_GPU(GPUInfo **info);
 
 int main(int argc, char* argv[])
 {
@@ -84,13 +85,20 @@ int main(int argc, char* argv[])
 		//printf("Successfully read data!\n");
 	}
 
+	print_MCML_information();
+
+	int GPU_count = 0;
+	GPUInfo *GPUs;
+	GPU_count = list_GPU(&GPUs);
+
+	system("pause");
+
 	clock_t time1, time2;
 
 	// Start the clock
 	time1 = clock();
 
 	//perform all the simulations
-	print_MCML_information();
 	for (int i = 0; i < n_simulations; i++)
 	{
 		// Run a simulation
@@ -102,6 +110,7 @@ int main(int argc, char* argv[])
 	printf("Simulation time: %.2f sec\n", (double)(time2 - time1) / CLOCKS_PER_SEC);
 
 	FreeSimulationStruct(simulations, n_simulations);
+	free(GPUs);
 
 	//system("PAUSE");
 	return 0;
