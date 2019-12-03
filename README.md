@@ -79,17 +79,17 @@ Numerical aperture of source fiber
 The radius of source fiber, in cm
     * angle:
 The angle of source fiber, in degree, toward +x direction
-    * num_SDS:
+* num_SDS:
 Number of detector fibers
-    * detectors:
+* detectors:
 Parameters for detector fibers, shold be an array of the same size as "num_SDS"
-        * pos:
+    * pos:
 The position (distance of the center of source fiber to the center of this detector fiber), in cm
-        * NA:
+    * NA:
 Numerical aperture of this detector fiber
-        * radius:
+    * radius:
 The radius of this detector fiber, in cm
-        * angle:
+    * angle:
 The angle of this detector fiber, in degree, toward -x direction
 		
 * Example:
