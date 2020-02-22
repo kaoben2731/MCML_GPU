@@ -41,8 +41,8 @@ void input_g(int index, G_Array *g);
 int InitG(G_Array* HostG, G_Array* DeviceG, int index);
 void FreeG(G_Array* HostG, G_Array* DeviceG);
 
-void output_A_rz(SimulationStruct* sim, unsigned long long *data);
-void output_A0_z(SimulationStruct* sim, unsigned long long *data);
+void output_A_rz(SimulationStruct* sim, unsigned long long *data, bool do_output_bin);
+void output_A0_z(SimulationStruct* sim, unsigned long long *data, bool do_output_bin);
 
 void calculate_average_pathlength(double *average_PL, float ***pathlength_weight_arr, SimulationStruct *sim, int *total_SDS_detect_num);
 void output_average_pathlength(SimulationStruct* sim, double *average_PL);
@@ -242,8 +242,8 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, SimO
 		cudaMemcpy(HostMem_Replay.A0_z, DeviceMem_Replay.A0_z, simulation->num_detector * record_nz * sizeof(unsigned long long), cudaMemcpyDeviceToHost);
 
 		if (simOpt.do_output_A_arr) {
-			output_A_rz(simulation, HostMem_Replay.A_rz); // output the absorbance
-			output_A0_z(simulation, HostMem_Replay.A0_z);
+			output_A_rz(simulation, HostMem_Replay.A_rz, simOpt.do_output_bin); // output the absorbance
+			output_A0_z(simulation, HostMem_Replay.A0_z, simOpt.do_output_bin);
 		}
 
 		sumStruc.time3 = clock();

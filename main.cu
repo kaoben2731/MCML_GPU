@@ -69,8 +69,8 @@ int main(int argc, char* argv[])
 		cout << "-AP option only work with -R option!\n";
 		return 0;
 	}
-	if (simOpt.do_output_bin && !simOpt.output_each_pathlength) {
-		cout << "-B option only work with -P option!\n";
+	if (simOpt.do_output_bin && !(simOpt.output_each_pathlength || simOpt.do_output_A_arr)) {
+		cout << "-B option only work with -P or -A option!\n";
 		return 0;
 	}
 
@@ -129,7 +129,7 @@ void show_usage(string name)
 		<< "\t-A,\t\t Output the absorbance array\n"
 		<< "\t-P,\t\t Output the pathlength for each photon, otherwise output the calculated average pathlength\n"
 		<< "\t-AP,\t\t Calaulate and output the average pathlength\n"
-		<< "\t-B,\t\t Output the pathlength file in binary format\n"
+		<< "\t-B,\t\t Output the pathlength and absorbance file in binary format\n"
 		<< endl;
 }
 

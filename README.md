@@ -262,3 +262,7 @@ Those are 6 detected photon with properties below:
 * Add the oblique mode in simulation, which will use fiber detection mode.
 * Read and output GPU information.
 * Set the number of blocks and threads according to the GPU information.
+
+### K2.02
+* updata: 2020/02/22
+* Add binary output mode ('-B') for absorbance array ('-A').
