@@ -647,9 +647,6 @@ __device__ void LaunchPhoton(PhotonStruct* p, curandState *state)
 
 	// infinite narrow beam for impulse response
 
-	p->x = 0.0;
-	p->y = 0.0;
-	p->z = 0.0;
 
 	//theta_direction = asin(NAOfSource / n_source)*rnd_direction;
 	//p->dz = cos(theta_direction);
@@ -664,6 +661,10 @@ __device__ void LaunchPhoton(PhotonStruct* p, curandState *state)
 
 	if (*source_probe_oblique_dc)
 	{
+		p->x = 0.0;
+		p->y = 0.0;
+		p->z = 0.0;
+
 		// the angle is toward positive x-axis
 		p->dx = 1.0*sin(detInfo_dc[0].angle);
 		p->dy = 0.0;
@@ -671,7 +672,41 @@ __device__ void LaunchPhoton(PhotonStruct* p, curandState *state)
 	}
 	else // if source_probe_oblique_dc == false
 	{
-		p->dx = 0.0, p->dy = 0.0, p->dz = 1.0;
+		if (detInfo_dc[0].raduis == 0) { // for point source
+			p->x = 0.0;
+			p->y = 0.0;
+			p->z = 0.0;
+		}
+		else {
+			float rnd_position, rnd_Azimuth;
+			float launchPosition;
+			float AzimuthAngle;
+
+			rnd_position = rn_gen(state);
+			rnd_Azimuth = rn_gen(state);
+			launchPosition = detInfo_dc[0].raduis*rnd_position;
+			AzimuthAngle = 2 * PI * rnd_Azimuth;
+			p->x = launchPosition*sin(AzimuthAngle);
+			p->y = launchPosition*cos(AzimuthAngle);
+			p->z = 0;
+		}
+		if (detInfo_dc[0].NA == 0) { // for pencil beam
+			p->dx = 0.0, p->dy = 0.0, p->dz = 1.0;
+		}
+		else { // for NA source
+			float rnd_direction, rnd_rotated;
+			float theta_direction; // direction angle from +z
+			float rotated_angle; // the rotate of direction
+
+			rnd_direction = rn_gen(state);
+			rnd_rotated = rn_gen(state);
+			theta_direction = asin(detInfo_dc[0].NA / layers_dc[0].n)*rnd_direction;
+			rotated_angle = 2 * PI * rnd_rotated;
+
+			p->dz = cos(theta_direction);
+			p->dx = sin(theta_direction) * cos(rotated_angle);
+			p->dy = sin(theta_direction) * sin(rotated_angle);
+		}
 	}
 
 	p->layer = 1;

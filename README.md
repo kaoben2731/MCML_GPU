@@ -266,3 +266,18 @@ Those are 6 detected photon with properties below:
 ### K2.02
 * updata: 2020/02/22
 * Add binary output mode ('-B') for absorbance array ('-A').
+
+### K2.03
+* updata: 2020/02/23
+* Implement source NA and radius setting.
+
+---
+
+<h2 id="todo">TODO</h2>
+
+---
+
+* Setting of detector n different from outer n
+* NA and radius setting for oblique probe
+* Improve the oblique probe performance on linux
+* set n_dr, n_dz in setup file
