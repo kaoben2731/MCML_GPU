@@ -6,6 +6,7 @@ the MCML with cuda acceleration which modified by Benjamin Kao and have many pur
 
 ## Contents
 
+* [Prepare](#prepare)
 * [Execute the Program](#exec)
 * [Input Files](#input_files)
     * [sim_set.json](#simset_json)
@@ -19,6 +20,13 @@ the MCML with cuda acceleration which modified by Benjamin Kao and have many pur
 * [average_pathlength.txt](#avg_PL_txt)
 * [Update History](#update_history)
 * [Reference](#reference)
+
+---
+
+<h2 id="prepare">Prepare</h2>
+
+1. Install Nvidia Cuda driver on the computer.
+2. type `make` to make the program
 
 ---
 
