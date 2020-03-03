@@ -281,7 +281,6 @@ Those are 6 detected photon with properties below:
 * NA and radius setting for oblique probe
 * Improve the oblique probe performance on linux
 * set n_dr, n_dz in setup file
-* add the pre-compiled bin folder
 * add selecting GPU to run
 * add multiple GPU
 * try to improve performance by increasing the num_step
