@@ -18,6 +18,7 @@ the MCML with cuda acceleration which modified by Benjamin Kao and have many pur
 * [A0_z_SDS_#.txt](#a0z_txt)
 * [average_pathlength.txt](#avg_PL_txt)
 * [Update History](#update_history)
+* [Reference](#reference)
 
 ---
 
@@ -270,6 +271,19 @@ Those are 6 detected photon with properties below:
 ### K2.03
 * updata: 2020/02/23
 * Implement source NA and radius setting.
+
+---
+
+<h2 id="reference">Reference</h2>
+
+### The original CUDAMCML
+
+[code link](http://www.atomic.physics.lu.se/biophotonics/research/monte-carlo-simulations/gpu-monte-carlo/)
+
+Erik Alerstam, Tomas Svensson, and Stefan Andersson-Engels. "Parallel
+Computing with Graphics Processing Units for High-Speed Monte Carlo
+Simulation of Photon Migration." Journal of Biomedical Optics 13(6), 060504 (2008)
+
 
 ---
 
