@@ -53,6 +53,10 @@ Output the pathlength for each photon in [pathlength_SDS_#.txt](#PLSDS_txt), oth
 Calaulate and output the average pathlength.
     * `-B`
 Output the pathlength file in binary format for faster speed.
+    * `-G #`
+Select which GPU to use.
+    * `-LS`
+List the GPUs in the computer.
 
 
 ---
@@ -274,11 +278,17 @@ Those are 6 detected photon with properties below:
 
 ### K2.02
 * updata: 2020/02/22
-* Add binary output mode ('-B') for absorbance array ('-A').
+* Add binary output mode (`-B`) for absorbance array (`-A`).
 
 ### K2.03
 * updata: 2020/02/23
 * Implement source NA and radius setting.
+
+### K3.01
+* updata: 2020/02/23
+* Can choose which GPU to run the simulation (`-G #`)
+* Can list the GPUs in the computer (`-LS`)
+
 
 ---
 
