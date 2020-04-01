@@ -59,7 +59,7 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, SimO
 	SummaryStruct sumStruc;
 	sumStruc.time1 = clock(); // tic
 	sumStruc.number_of_photons = simulation->number_of_photons;
-	strncpy(sumStruc.GPU_name, (*GPUs)[0].name, max_GPU_name_length);
+	strncpy(sumStruc.GPU_name, (*GPUs)[simOpt.GPU_select_to_run].name, max_GPU_name_length);
 
 	vector<vector<curandState>> detected_state_arr(simulation->num_detector); // the state for detected photon in curand
 	int *total_SDS_detect_num = new int[simulation->num_detector]; // record number fo detected photon by each detector
@@ -84,8 +84,8 @@ void DoOneSimulation(SimulationStruct* simulation, int index, char* output, SimO
 	}
 	else
 	{
-		num_of_blocks = (*GPUs)[0].autoblock*(*GPUs)[0].MPs;
-		num_of_threads_per_block = (*GPUs)[0].autothreadpb;
+		num_of_blocks = (*GPUs)[simOpt.GPU_select_to_run].autoblock*(*GPUs)[simOpt.GPU_select_to_run].MPs;
+		num_of_threads_per_block = (*GPUs)[simOpt.GPU_select_to_run].autothreadpb;
 		num_of_threads = num_of_blocks*num_of_threads_per_block;
 	}
 

@@ -31,8 +31,8 @@ using namespace std;
 #endif
 
 
-#define MCML_VERSION "2.03"
-#define Last_Update_Date "2020/02/23"
+#define MCML_VERSION "3.01"
+#define Last_Update_Date "2020/04/01"
 
 #define NUM_LAYER 5
 #define PRESET_NUM_LAYER 10
@@ -199,6 +199,7 @@ typedef struct
 	bool output_each_pathlength;        // output the pathlength of each detected photon or not
 	bool do_output_average_pathlength;  // output the average pathlength of the detected photon or not
 	bool do_output_bin;                 // output the pathlength file in binary format ot not
+	int GPU_select_to_run;              // the index of selected GPU
 } SimOptions;
 
 __device__ __constant__ unsigned long long num_photons_dc[1];

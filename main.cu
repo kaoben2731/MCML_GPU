@@ -20,17 +20,13 @@ int main(int argc, char* argv[])
 	int n_simulations;
 	unsigned long long seed = (unsigned long long) time(NULL); // Default, use time(NULL) as seed
 
-	if (argc < 4) {
-		show_usage(argv[0]);
-		return 0;
-	}
-
 	SimOptions simOpt;
 	simOpt.do_replay = false;
 	simOpt.do_output_A_arr = false;
 	simOpt.output_each_pathlength = false;
 	simOpt.do_output_average_pathlength = false;
 	simOpt.do_output_bin = false;
+	simOpt.GPU_select_to_run = 0;
 
 	for (int i = 1; i < argc; i++) {
 		if (string(argv[i]) == "-h") {
@@ -52,7 +48,28 @@ int main(int argc, char* argv[])
 		else if (string(argv[i]) == "-B") {
 			simOpt.do_output_bin = true;
 		}
+		else if (string(argv[i]) == "-G") {
+			int selected_GPU=stoi(string(argv[i+1]));
+			if (selected_GPU < 0)
+			{
+				cout << "GPU selection ERROR!\n";
+				return 0;
+			}
+			simOpt.GPU_select_to_run = selected_GPU;
+		}
+		else if (string(argv[i]) == "-LS") {
+			int GPU_count = 0;
+			GPUInfo *GPUs;
+			GPU_count = list_GPU(&GPUs);
+			return 0;
+		}
 	}
+
+	if (argc < 4) {
+		show_usage(argv[0]);
+		return 0;
+	}
+
 	if (simOpt.do_replay && !simOpt.output_each_pathlength) {
 		simOpt.do_output_average_pathlength = true;
 	}
@@ -91,6 +108,16 @@ int main(int argc, char* argv[])
 	int GPU_count = 0;
 	GPUInfo *GPUs;
 	GPU_count = list_GPU(&GPUs);
+	if (simOpt.GPU_select_to_run >= GPU_count)
+	{
+		cout << "GPU selection ERROR!\n";
+		return 0;
+	}
+	else
+	{
+		cout << "GPU " << simOpt.GPU_select_to_run << " is selected\n";
+	}
+	cudaSetDevice(simOpt.GPU_select_to_run);
 
 	//system("pause");
 
@@ -130,6 +157,8 @@ void show_usage(string name)
 		<< "\t-P,\t\t Output the pathlength for each photon, otherwise output the calculated average pathlength\n"
 		<< "\t-AP,\t\t Calaulate and output the average pathlength\n"
 		<< "\t-B,\t\t Output the pathlength and absorbance file in binary format\n"
+		<< "\t-LS,\t\t List the GPUs and not run simulation\n"
+		<< "\t-G,\t\t Select which GPU to run, following by a number start from 0\n"
 		<< endl;
 }
 
