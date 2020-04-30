@@ -310,9 +310,9 @@ Simulation of Photon Migration." Journal of Biomedical Optics 13(6), 060504 (200
 ---
 
 * Setting of detector n different from outer n
+* Change the hight setting of buttom layer to true Inf
 * NA and radius setting for oblique probe
 * Improve the oblique probe performance on linux
 * set n_dr, n_dz in setup file
-* add selecting GPU to run
 * add multiple GPU
 * try to improve performance by increasing the num_step
