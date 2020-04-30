@@ -158,7 +158,7 @@ Set the optical parameters for each layer.
     * Arrange in "height(cm) mu_a(1/cm) mu_s(1/cm) n g" for one layer.
     * The last layer should have no height.
     * 5 parameters for 1 layer, so n layer should be 5n-1 columns.
-    * The number of layers should be the same as "number_layers" in 
+    * The number of layers should be the same as "number_layers" in `sim_set.json`
 * Example:
 `0.27	0.3201	35.2861	1.4	0	0.65	0.2954	30.5833	1.4	0	0.2747	130.6813	1.4	0`
 This is a 3 layer tissue, parameters for each layer are setting as below:
