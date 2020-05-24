@@ -316,3 +316,4 @@ Simulation of Photon Migration." Journal of Biomedical Optics 13(6), 060504 (200
 * set n_dr, n_dz in setup file
 * add multiple GPU
 * try to improve performance by increasing the num_step
+* add a preview function to draw the settings.
