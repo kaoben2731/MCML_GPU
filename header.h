@@ -31,8 +31,8 @@ using namespace std;
 #endif
 
 
-#define MCML_VERSION "3.01"
-#define Last_Update_Date "2020/04/01"
+#define MCML_VERSION "3.02"
+#define Last_Update_Date "2020/06/13"
 
 #define NUM_LAYER 5
 #define PRESET_NUM_LAYER 10
