@@ -741,22 +741,24 @@ __global__ void LaunchPhoton_Global(MemStruct DeviceMem, unsigned long long seed
 
 __device__ void Spin(PhotonStruct* p, float g, curandState *state)
 {
-	float theta, cost, sint;	// cosine and sine of the 
-								// polar deflection angle theta. 
-	float cosp, sinp;	// cosine and sine of the 
-						// azimuthal angle psi. 
+	float theta, cost, sint; // cosine and sine of the polar deflection angle theta. 
+	float cosp, sinp; // cosine and sine of the azimuthal angle psi. 
 	float temp;
-	float tempdir = p->dx;
 
-	//This is more efficient for g!=0 but of course less efficient for g==0
-	temp = __fdividef((1.0f - (g)*(g)), (1.0f - (g)+2.0f*(g)*rn_gen(state)));//Should be close close????!!!!!
-	cost = __fdividef((1.0f + (g)*(g)-temp*temp), (2.0f*(g)));
 	if (g == 0.0f)
-		cost = 2.0f*rn_gen(state) - 1.0f;//Should be close close??!!!!!
+	{
+		cost = 2.0f*rn_gen(state) - 1.0f;
+	}
+	else // This is more efficient for g!=0 but of course less efficient for g==0
+	{
+		// The Henyey-Greenstein phase function
+		temp = __fdividef((1.0f - (g)*(g)), (1.0f - (g)+2.0f*(g)*rn_gen(state)));
+		cost = __fdividef((1.0f + (g)*(g)-temp*temp), (2.0f*(g)));
+	}
 
 	sint = sqrtf(1.0f - cost*cost);
 
-	__sincosf(2.0f*PI*rn_gen(state), &sinp, &cosp);// spin psi [0-2*PI)
+	__sincosf(2.0f*PI*rn_gen(state), &sinp, &cosp); // spin psi [0-2*PI)
 
 	temp = sqrtf(1.0f - p->dz*p->dz);
 
@@ -768,8 +770,11 @@ __device__ void Spin(PhotonStruct* p, float g, curandState *state)
 	}
 	else // regular incident.
 	{
-		p->dx = __fdividef(sint*(p->dx*p->dz*cosp - p->dy*sinp), temp) + p->dx*cost;
-		p->dy = __fdividef(sint*(p->dy*p->dz*cosp + tempdir*sinp), temp) + p->dy*cost;
+		float cxp, cyp;
+		cxp = __fdividef(sint*(p->dx*p->dz*cosp - p->dy*sinp), temp) + p->dx*cost;
+		cyp = __fdividef(sint*(p->dy*p->dz*cosp + p->dx*sinp), temp) + p->dy*cost;
+		p->dx = cxp;
+		p->dy = cyp;
 		p->dz = -sint*cosp*temp + p->dz*cost;
 	}
 
