@@ -289,6 +289,9 @@ Those are 6 detected photon with properties below:
 * Can choose which GPU to run the simulation (`-G #`)
 * Can list the GPUs in the computer (`-LS`)
 
+### K3.02
+* updata: 2020/06/13
+* Little update in decide the scatter angle of the photon to improve speed.
 
 ---
 
