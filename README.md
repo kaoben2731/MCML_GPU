@@ -312,6 +312,7 @@ Simulation of Photon Migration." Journal of Biomedical Optics 13(6), 060504 (200
 
 ---
 
+* Check Why I **can't** get the same reflectance while the musp is the same!
 * Setting of detector n different from outer n
 * Change the hight setting of buttom layer to true Inf
 * NA and radius setting for oblique probe
