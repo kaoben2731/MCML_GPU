@@ -5,8 +5,8 @@
   "detector_reflectance": 0.0,
   "upper_n": 1.457,
   "lower_n": 1.457,
-  "source_probe_oblique": 1,
-  "detector_probe_oblique": 1,
+  "source_probe_oblique": 0,
+  "detector_probe_oblique": 0,
   "probes": {
     "source": {
       "NA": 0.37,
